@@ -72,3 +72,4 @@ Full ranked list of 10 ideas captured in the session report and `.squad/decision
 ## Team Updates
 
 - 2026-05-07: Squad ran a four-agent showcase exploration (Elaine + Peterman + George + Jerry) at Ajay's request. Two new pillars proposed alongside the existing Talk/See/Do: **Read & Write** (translate, summarize, rewrite, smart-reply) and **Remember** (on-device RAG over photos, notes, voice memos). v1.1–v1.5 roadmap and anti-patterns now logged in .squad/decisions.md.
+- 2026-05-07: v1.0.2 shipped — GPU backend + MTP enabled with proper CPU fallback (commit 4e6b864, tag v1.0.2).

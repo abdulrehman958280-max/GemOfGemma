@@ -200,3 +200,13 @@ These features may exist quietly but must NEVER be a headline screenshot, README
 ---
 
 **Ranking criterion to lock in:** vision alignment × demo impact × implementation feasibility — in that priority order. A feasible-but-off-strategy feature loses to a stretch-but-on-strategy feature.
+
+## v1.0.2 Patch — May 7, 2026
+
+### 2026-05-07: GemmaEngine: GPU-first with MTP, CPU fallback (v1.0.2)
+**By:** Elaine (ML Engineer), requested by Ajay Sainy
+**What:** `GemmaEngine.initialize()` now attempts `Backend.GPU()` first with `ExperimentalFlags.enableSpeculativeDecoding = true` (MTP / speculative decoding) enabled before engine construction. On any GPU init exception, falls back to `Backend.CPU()`. Vision backend (`visionBackend`) is kept on `Backend.CPU()` in BOTH the GPU and CPU paths to keep this patch scoped. Misleading "CPU init failed" log message corrected to "GPU init failed, falling back to CPU". MTP usage gated by `@OptIn(ExperimentalApi::class)`.
+**Why:** Prior code claimed a "GPU with CPU fallback" strategy but constructed `Backend.CPU()` in BOTH the try and catch branches — GPU was never attempted, MTP was unreachable, and the codebase was effectively shipping CPU-only inference. This fix is a self-contained v1.0.2 patch separate from the broader v1.1 showcase roadmap. GPU-vision and any backend telemetry/NPU-preference work are deliberately out of scope and deferred.
+**Build:** `:ai:assembleDebug` BUILD SUCCESSFUL on LiteRT-LM 0.11.0.
+**Verification (emulator-5554):** Logcat confirmed `enable_speculative_decoding: true`. Emulator lacks OpenCL so the CPU-fallback branch engaged correctly ("GemmaEngine initialized with CPU backend (fallback)"). Smoke test: "Hello" → "Hello! How can I help you today? 😊". GPU path remains unverified — needs real-hardware run.
+**Shipped as:** Commit `4e6b864`, tag `v1.0.2`. Release workflow run 25523438714.
