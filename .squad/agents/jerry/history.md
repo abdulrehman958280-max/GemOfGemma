@@ -47,3 +47,20 @@ Elaine proposed new additions to PhoneActionToolSet based on background actions 
 - **What's added:** `AiRequest.VisionChat`, `ChatMessage.imageBytes/detections/ocrBlocks/messageType`, image attachment UI in chat input, `ImageCaptureScreen` (lightweight camera-to-chat), inline `BoundingBoxOverlay` in chat bubbles.
 - **What's kept:** `CameraManager`, `BoundingBoxOverlay`, all parsers, `ActionDispatcher`, `VoiceRecognizer`.
 - **Open questions for Ajay:** Chat header style, conversation persistence across restarts, multi-conversation support, image handling during conversation recovery.
+
+### Showcase Strategy Memo — May 7, 2026
+- **The strategic frame is "the open alternative to Apple Intelligence + Google AICore."** Not "yet another local LLM chat app." Apple/Google have decided which phones are smart; we decide every Android is. Use this exact framing in marketing.
+- **Five-pillar architecture committed**: Talk, See, Do (existing) + Read & Write, Remember (NEW). Every feature proposal must declare its pillar at intake. No pillar fit → no merge. Decision file: `.squad/decisions/inbox/jerry-showcase-strategy.md`.
+- **The biggest gaps in the current showcase are Read & Write and Remember.** Apple Intelligence's tentpoles (Live Translate, Writing Tools, Smart Photo Search) all sit in these pillars and we have *zero* presence today.
+- **Reuse > invent**: Live Translate, Writing Tools, and Capture-to-Action are *all* repackaging of capabilities we already ship. No new ML required — only new UX surfaces (system TTS, share-sheet target, Android process_text intent). This is the highest-leverage near-term work.
+- **Live Translate is the single biggest demo win.** ASR + translation already work; bolt on Android `TextToSpeech` and we have the Apple Intelligence tentpole running airplane-mode on a Pixel 6. Effort small, impact maximum.
+- **Smart Photo Search is the signature "magic" demo** but requires a background indexer + permissions + UI — it's the medium-effort feature, second-wave.
+- **Anti-patterns are as important as features**: real-time news, image generation, serious code assistant, enterprise doc RAG, live AR video narration, always-listening voice agent. These are where on-device honestly loses to cloud — they make us look weaker, not stronger. NEVER headline them.
+- **Demo-first build order**: features demoable in 60 seconds with no setup go first (Live Translate, Writing Tools). Indexer-dependent features go second wave (Smart Photo Search, Voice Memory).
+- **Open questions for Ajay** to lock the v1.1 plan: which tentpole first (Translate vs. Writing Tools)? System TTS vs. bundled Kokoro? Smart Photo Search scope (gallery only vs. screenshots+downloads)?
+- **Competitor scan**: NativeMind (browser ext.), parlor (desktop Gemma 4 + Kokoro), claude-code-local (airgap macOS), MLC-LLM (runtime, not assistant), Mano-P (GUI agent macOS) — none are an end-user *Android* assistant covering all five pillars. Our position is uncrowded if we move fast.
+
+
+## Team Updates
+
+- 2026-05-07: Squad ran a four-agent showcase exploration (Elaine + Peterman + George + Jerry) at Ajay's request. Two new pillars proposed alongside the existing Talk/See/Do: **Read & Write** (translate, summarize, rewrite, smart-reply) and **Remember** (on-device RAG over photos, notes, voice memos). v1.1–v1.5 roadmap and anti-patterns now logged in .squad/decisions.md.
