@@ -87,19 +87,37 @@ jobs:
         run: |
           VERSION=${GITHUB_REF_NAME#v}
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          # Use tag annotation if available, otherwise generate default notes
+
           TAG_MSG=$(git tag -l --format='%(contents)' "$GITHUB_REF_NAME" 2>/dev/null || true)
-          if [ -n "$TAG_MSG" ]; then
-            echo "body<<EOF" >> "$GITHUB_OUTPUT"
-            echo "$TAG_MSG" >> "$GITHUB_OUTPUT"
-            echo "EOF" >> "$GITHUB_OUTPUT"
-          else
-            echo "body<<EOF" >> "$GITHUB_OUTPUT"
-            echo "## GemOfGemma $VERSION" >> "$GITHUB_OUTPUT"
-            echo "" >> "$GITHUB_OUTPUT"
-            echo "Download the APK below and install it on your Android device (API 31+)." >> "$GITHUB_OUTPUT"
-            echo "EOF" >> "$GITHUB_OUTPUT"
-          fi
+
+          {
+            echo "body<<EOF"
+            echo "## Download"
+            echo ""
+            echo "| APK | Device | Size |"
+            echo "|-----|--------|------|"
+            echo "| **arm64-v8a** (recommended) | Most modern phones — Samsung, OnePlus, Pixel, Xiaomi, etc. | ~25 MB |"
+            echo "| **universal** | Any Android device (larger download) | ~49 MB |"
+            echo "| **armeabi-v7a** | Older 32-bit phones | ~5 MB |"
+            echo "| **x86_64** | Emulators, Chromebooks | ~29 MB |"
+            echo ""
+            echo "> **Not sure?** Download **arm64-v8a** — it works on 95%+ of phones made since 2017."
+            echo "> If it doesn't install, try **universal** instead."
+            echo ""
+            echo "### Install"
+            echo "1. Download the APK for your device"
+            echo "2. Open the downloaded file and tap **Install** (you may need to allow \"Install from unknown sources\")"
+            echo "3. The app will download the Gemma 4 AI model (~2.5 GB) on first launch"
+            echo ""
+            echo "**Requires Android 12+ (API 31)**"
+            if [ -n "$TAG_MSG" ]; then
+              echo ""
+              echo "---"
+              echo "### What's Changed"
+              echo "$TAG_MSG"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
