@@ -3,6 +3,13 @@ Old entries summarized.
 
 ## Learnings
 
+### 2026-05-07 — v1.0.2 patch landed: GemmaEngine GPU + MTP fix
+- Fixed `GemmaEngine.kt` so the first init branch now uses `Backend.GPU()` (was `Backend.CPU()` — bug from prior code).
+- MTP is opt-in via `@OptIn(ExperimentalApi::class)` + `ExperimentalFlags.enableSpeculativeDecoding = true`, set BEFORE `EngineConfig` construction. Imports added for `ExperimentalApi` and `ExperimentalFlags`.
+- CPU catch-block remains genuine fallback (still `Backend.CPU()`); log messages corrected ("GPU init failed, falling back to CPU" instead of misleading "CPU init failed").
+- **Vision backend kept on `Backend.CPU()` in BOTH paths** — scoped change. GPU vision is parked as a separate optimization for a later patch.
+- `:ai:assembleDebug` build is green.
+
 ### 2026-05-07 — LiteRT-LM 0.11.0 Multi-Token Prediction (MTP) — verified
 - **What it is:** New decode-speed optimization shipped in LiteRT-LM 0.11.0 (released May 6, 2026). Uses a small "draft" model embedded in the `.litertlm` file to predict multiple upcoming tokens; the main model verifies them in parallel. >2× decode speedup on GPU with zero quality loss. The HuggingFace model card (`litert-community/gemma-4-E2B-it-litert-lm`) labels this as "Speculative Decoding".
 - **API surface (Kotlin):**

@@ -6,6 +6,8 @@ import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
+import com.google.ai.edge.litertlm.ExperimentalApi
+import com.google.ai.edge.litertlm.ExperimentalFlags
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -47,18 +49,20 @@ class GemmaEngine @Inject constructor() {
                 }
 
                 try {
+                    @OptIn(ExperimentalApi::class)
+                    run { ExperimentalFlags.enableSpeculativeDecoding = true }
                     val config = EngineConfig(
                         modelPath = modelPath,
-                        backend = Backend.CPU(),
+                        backend = Backend.GPU(),
                         visionBackend = Backend.CPU(),
                         cacheDir = cacheDir
                     )
                     engine = Engine(config).also { it.initialize() }
                     isInitialized = true
                     initError = null
-                    Log.i(TAG, "GemmaEngine initialized with CPU backend")      
+                    Log.i(TAG, "GemmaEngine initialized with GPU backend (MTP enabled)")
                 } catch (gpuEx: Exception) {
-                    Log.w(TAG, "CPU init failed due to an exception", gpuEx)
+                    Log.w(TAG, "GPU init failed, falling back to CPU", gpuEx)
                     try {
                         val cpuConfig = EngineConfig(
                             modelPath = modelPath,
