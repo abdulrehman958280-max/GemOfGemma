@@ -22,10 +22,13 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Allow release builds without a custom keystore (for sideloading)
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
@@ -36,6 +39,15 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            isUniversalApk = true
+        }
     }
 }
 

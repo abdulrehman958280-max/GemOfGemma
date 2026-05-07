@@ -49,17 +49,38 @@ jobs:
               -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
               -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
           else
-            ./gradlew assembleDebug
+            ./gradlew assembleRelease
           fi
 
-      - name: Rename APK
+      - name: Rename APKs
         run: |
           VERSION=${GITHUB_REF_NAME#v}
-          if [ -f app/build/outputs/apk/release/app-release.apk ]; then
-            mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/GemOfGemma-${VERSION}.apk
+          mkdir -p app/build/outputs/apk/release-assets
+
+          if ls app/build/outputs/apk/release/*.apk 1>/dev/null 2>&1; then
+            BUILD_TYPE="release"
           else
-            mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/GemOfGemma-${VERSION}-debug.apk
+            BUILD_TYPE="debug"
           fi
+
+          for apk in app/build/outputs/apk/${BUILD_TYPE}/*.apk; do
+            BASENAME=$(basename "$apk" .apk)
+            # Extract ABI from filename (e.g. app-arm64-v8a-debug -> arm64-v8a)
+            case "$BASENAME" in
+              *arm64-v8a*) SUFFIX="-arm64-v8a" ;;
+              *armeabi-v7a*) SUFFIX="-armeabi-v7a" ;;
+              *x86_64*) SUFFIX="-x86_64" ;;
+              *universal*) SUFFIX="-universal" ;;
+              *) SUFFIX="" ;;
+            esac
+            if [ "$BUILD_TYPE" = "debug" ]; then
+              cp "$apk" "app/build/outputs/apk/release-assets/GemOfGemma-${VERSION}${SUFFIX}-debug.apk"
+            else
+              cp "$apk" "app/build/outputs/apk/release-assets/GemOfGemma-${VERSION}${SUFFIX}.apk"
+            fi
+          done
+
+          ls -lh app/build/outputs/apk/release-assets/
 
       - name: Extract release notes
         id: notes
@@ -87,4 +108,4 @@ jobs:
           body: ${{ steps.notes.outputs.body }}
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
-          files: app/build/outputs/apk/GemOfGemma-*
+          files: app/build/outputs/apk/release-assets/GemOfGemma-*
