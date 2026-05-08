@@ -383,7 +383,7 @@ fun ChatScreen(
                                     )
                                 ) + fadeIn()
                             ) {
-                                ChatBubble(message = message)
+                                ChatBubble(message = message, showInferenceStats = uiState.showInferenceStats)
                             }
                         }
                     }
@@ -432,6 +432,11 @@ fun ChatScreen(
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 color = MaterialTheme.colorScheme.onSurface
                                             )
+                                        }
+                                        uiState.streamingStats?.let { stats ->
+                                            if (uiState.showInferenceStats) {
+                                                InferenceStatsChip(stats)
+                                            }
                                         }
                                     }
                                 }
@@ -574,7 +579,7 @@ fun ChatScreen(
 }
 
 @Composable
-private fun ChatBubble(message: ChatMessage) {
+private fun ChatBubble(message: ChatMessage, showInferenceStats: Boolean = true) {
     val isUser = message.role == ChatMessage.Role.USER
     val hasImage = message.imageBytes != null
     val context = LocalContext.current
@@ -636,6 +641,11 @@ private fun ChatBubble(message: ChatMessage) {
                     ChatMessage.MessageType.ERROR -> ErrorContent(message)
                     else -> TextContent(message, isUser)
                 }
+
+                // Inference stats chip — assistant messages only
+                if (!isUser && message.stats != null && showInferenceStats) {
+                    InferenceStatsChip(message.stats!!)
+                }
             }
         }
         }
@@ -680,6 +690,16 @@ private fun ChatBubble(message: ChatMessage) {
             }
         }
     }
+}
+
+@Composable
+private fun InferenceStatsChip(stats: com.gemofgemma.core.model.InferenceStats) {
+    Text(
+        text = stats.formatDisplay(),
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+    )
 }
 
 @Composable

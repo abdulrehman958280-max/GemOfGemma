@@ -18,11 +18,23 @@ class ToolPreferencesRepository(private val context: Context) {
 
     private val ENABLED_TOOLS_KEY = stringSetPreferencesKey("enabled_tools")
     private val INITIALIZED_KEY = booleanPreferencesKey("tools_initialized_v2")
+    private val SHOW_INFERENCE_STATS_KEY = booleanPreferencesKey("show_inference_stats")
 
     val enabledToolsFlow: Flow<Set<String>> = context.toolPreferencesDataStore.data
         .map { preferences ->
             preferences[ENABLED_TOOLS_KEY] ?: emptySet()
         }
+
+    val showInferenceStatsFlow: Flow<Boolean> = context.toolPreferencesDataStore.data
+        .map { preferences ->
+            preferences[SHOW_INFERENCE_STATS_KEY] ?: true // default ON
+        }
+
+    suspend fun setShowInferenceStats(enabled: Boolean) {
+        context.toolPreferencesDataStore.edit { preferences ->
+            preferences[SHOW_INFERENCE_STATS_KEY] = enabled
+        }
+    }
 
     fun getDefaultTools(): Set<String> = ToolDefinition.PHONE_ACTION_IDS
 

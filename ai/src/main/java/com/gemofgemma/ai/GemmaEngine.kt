@@ -38,6 +38,11 @@ class GemmaEngine @Inject constructor() {
     var initError: String? = null
         private set
 
+    /** Which backend initialized successfully: "GPU" or "CPU". */
+    @Volatile
+    var backendName: String = "CPU"
+        private set
+
     suspend fun initialize(modelPath: String, cacheDir: String) {
         withContext(Dispatchers.IO) {
             try {
@@ -60,6 +65,7 @@ class GemmaEngine @Inject constructor() {
                     engine = Engine(config).also { it.initialize() }
                     isInitialized = true
                     initError = null
+                    backendName = "GPU"
                     Log.i(TAG, "GemmaEngine initialized with GPU backend (MTP enabled)")
                 } catch (gpuEx: Exception) {
                     Log.w(TAG, "GPU init failed, falling back to CPU", gpuEx)
@@ -73,6 +79,7 @@ class GemmaEngine @Inject constructor() {
                         engine = Engine(cpuConfig).also { it.initialize() }
                         isInitialized = true
                         initError = null
+                        backendName = "CPU"
                         Log.i(TAG, "GemmaEngine initialized with CPU backend (fallback)")
                     } catch (cpuEx: Exception) {
                         initError = "Both GPU and CPU initialization failed: ${cpuEx.message}"

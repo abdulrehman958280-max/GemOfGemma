@@ -2,6 +2,7 @@ package com.gemofgemma.ui.chat
 
 import com.gemofgemma.core.data.ConversationEntity
 import com.gemofgemma.core.model.ChatMessage
+import com.gemofgemma.core.model.InferenceStats
 
 data class ChatUiState(
     val messages: List<ChatMessage> = emptyList(),
@@ -10,6 +11,7 @@ data class ChatUiState(
     val isRecording: Boolean = false,
     val streamingText: String? = null,
     val thinkingText: String? = null,
+    val streamingStats: InferenceStats? = null,
     val error: String? = null,
     val isModelAvailable: Boolean = false,
     val isEngineReady: Boolean = false,
@@ -22,5 +24,6 @@ data class ChatUiState(
     val enabledTools: Set<String> = emptySet(),
     val currentConversationId: String? = null,
     val conversations: List<ConversationEntity> = emptyList(),
-    val showConversationHistory: Boolean = false
+    val showConversationHistory: Boolean = false,
+    val showInferenceStats: Boolean = true
 )

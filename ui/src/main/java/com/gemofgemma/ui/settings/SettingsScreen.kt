@@ -31,6 +31,7 @@ fun SettingsScreen(
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     val enabledTools by settingsViewModel.enabledTools.collectAsStateWithLifecycle()
+    val showInferenceStats by settingsViewModel.showInferenceStats.collectAsStateWithLifecycle()
     
     val isModelAvailable by viewModel.isModelAvailable.collectAsStateWithLifecycle()
     val isDownloading by viewModel.isDownloading.collectAsStateWithLifecycle()
@@ -199,21 +200,38 @@ fun SettingsScreen(
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                var darkMode by remember { mutableStateOf(false) }
-                ListItem(
-                    headlineContent = { Text("Dark Mode") },
-                    supportingContent = { Text("Follow system default") },
-                    leadingContent = {
-                        Icon(Icons.Default.DarkMode, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    },
-                    trailingContent = {
-                        Switch(
-                            checked = darkMode,
-                            onCheckedChange = { darkMode = it }
-                        )
-                    },
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                )
+                Column {
+                    var darkMode by remember { mutableStateOf(false) }
+                    ListItem(
+                        headlineContent = { Text("Dark Mode") },
+                        supportingContent = { Text("Follow system default") },
+                        leadingContent = {
+                            Icon(Icons.Default.DarkMode, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = darkMode,
+                                onCheckedChange = { darkMode = it }
+                            )
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    ListItem(
+                        headlineContent = { Text("Show inference stats") },
+                        supportingContent = { Text("Display tokens/sec, TTFT, and backend below each response") },
+                        leadingContent = {
+                            Icon(Icons.Default.Speed, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = showInferenceStats,
+                                onCheckedChange = { settingsViewModel.setShowInferenceStats(it) }
+                            )
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                    )
+                }
             }
         }
     }

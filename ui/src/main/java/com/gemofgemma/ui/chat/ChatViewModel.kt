@@ -69,6 +69,11 @@ class ChatViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
+            toolPreferencesRepository.showInferenceStatsFlow.collect { show ->
+                _uiState.update { it.copy(showInferenceStats = show) }
+            }
+        }
+        viewModelScope.launch {
             chatRepository.getConversations().collect { conversations ->
                 _uiState.update { it.copy(conversations = conversations) }
             }
@@ -244,6 +249,7 @@ class ChatViewModel @Inject constructor(
                 var finalText = ""
                 var finalThinking: String? = null
                 var finalActionResult: com.gemofgemma.core.model.ActionResult? = null
+                var finalStats: com.gemofgemma.core.model.InferenceStats? = null
                 var streamingFailed = false
                 aiProcessor.processStreaming(request)
                     .onEach { chunk ->
@@ -252,16 +258,20 @@ class ChatViewModel @Inject constructor(
                         if (chunk.actionResult != null) {
                             finalActionResult = chunk.actionResult
                         }
+                        if (chunk.stats != null) {
+                            finalStats = chunk.stats
+                        }
                         _uiState.update { it.copy(
                             streamingText = chunk.responseText,
-                            thinkingText = chunk.thinkingText
+                            thinkingText = chunk.thinkingText,
+                            streamingStats = chunk.stats ?: it.streamingStats
                         ) }
                     }
                     .catch { e ->
                         // Streaming failed mid-way — mark for fallback
                         android.util.Log.e("ChatVM", "Streaming catch: ${e.message}", e)
                         streamingFailed = true
-                        _uiState.update { it.copy(streamingText = null, thinkingText = null) }
+                        _uiState.update { it.copy(streamingText = null, thinkingText = null, streamingStats = null) }
                         emit(com.gemofgemma.core.model.StreamChunk("")) // terminate the flow
                     }
                     .collect { /* consumed by onEach above */ }
@@ -275,7 +285,8 @@ class ChatViewModel @Inject constructor(
                             messages = it.messages + assistantMessage,
                             isLoading = false,
                             streamingText = null,
-                            thinkingText = null
+                            thinkingText = null,
+                            streamingStats = null
                         )
                     }
                     persistAssistantMessage(assistantMessage)
@@ -283,7 +294,7 @@ class ChatViewModel @Inject constructor(
                 }
 
                 // Stream completed — post-process the final text
-                _uiState.update { it.copy(streamingText = null, thinkingText = null) }
+                _uiState.update { it.copy(streamingText = null, thinkingText = null, streamingStats = null) }
 
                 val response = if (finalActionResult != null) {
                     // Tool call was handled during streaming via native ToolSet
@@ -295,19 +306,20 @@ class ChatViewModel @Inject constructor(
                         aiProcessor.postProcessChat(finalText)
                 }
 
-                val assistantMessage = buildAssistantMessage(response, pendingImage, finalThinking)
+                val assistantMessage = buildAssistantMessage(response, pendingImage, finalThinking, finalStats)
                 _uiState.update {
                     it.copy(
                         messages = it.messages + assistantMessage,
                         isLoading = false,
                         streamingText = null,
-                        thinkingText = null
+                        thinkingText = null,
+                        streamingStats = null
                     )
                 }
                 persistAssistantMessage(assistantMessage)
             } catch (e: Exception) {
                 // processStreaming threw (e.g. engine not ready) — fall back
-                _uiState.update { it.copy(streamingText = null, thinkingText = null) }
+                _uiState.update { it.copy(streamingText = null, thinkingText = null, streamingStats = null) }
                 try {
                     val response = aiProcessor.process(request)
                     val assistantMessage = buildAssistantMessage(response, pendingImage)
@@ -316,7 +328,8 @@ class ChatViewModel @Inject constructor(
                             messages = it.messages + assistantMessage,
                             isLoading = false,
                             streamingText = null,
-                            thinkingText = null
+                            thinkingText = null,
+                            streamingStats = null
                         )
                     }
                     persistAssistantMessage(assistantMessage)
@@ -326,6 +339,7 @@ class ChatViewModel @Inject constructor(
                             isLoading = false,
                             streamingText = null,
                             thinkingText = null,
+                            streamingStats = null,
                             error = "Failed to get response: ${fallbackError.message}"
                         )
                     }
@@ -359,7 +373,8 @@ class ChatViewModel @Inject constructor(
                     messages = it.messages + stoppedMessage,
                     isLoading = false,
                     streamingText = null,
-                    thinkingText = null
+                    thinkingText = null,
+                    streamingStats = null
                 )
             }
             persistAssistantMessage(stoppedMessage)
@@ -368,7 +383,8 @@ class ChatViewModel @Inject constructor(
                 it.copy(
                     isLoading = false,
                     streamingText = null,
-                    thinkingText = null
+                    thinkingText = null,
+                    streamingStats = null
                 )
             }
         }
@@ -381,14 +397,16 @@ class ChatViewModel @Inject constructor(
     private fun buildAssistantMessage(
         response: AiResponse,
         pendingImage: ByteArray?,
-        thinkingContent: String? = null
+        thinkingContent: String? = null,
+        stats: com.gemofgemma.core.model.InferenceStats? = null
     ): ChatMessage {
         return when (response) {
             is AiResponse.TextResponse -> ChatMessage(
                 id = UUID.randomUUID().toString(),
                 role = ChatMessage.Role.ASSISTANT,
                 content = response.text,
-                thinkingContent = thinkingContent
+                thinkingContent = thinkingContent,
+                stats = stats
             )
             is AiResponse.ActionResponse -> {
                 val resultText = when (val result = response.actionResult) {

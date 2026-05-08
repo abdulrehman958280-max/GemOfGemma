@@ -18,6 +18,7 @@ import com.gemofgemma.ai.tools.GemmaToolSet
 import com.gemofgemma.core.model.AiRequest
 import com.gemofgemma.core.model.AiResponse
 import com.gemofgemma.core.model.ChatMessage
+import com.gemofgemma.core.model.InferenceStats
 import com.gemofgemma.core.model.StreamChunk
 import com.google.ai.edge.litertlm.Channel
 import com.google.ai.edge.litertlm.Content
@@ -176,12 +177,17 @@ class GemmaService : LifecycleService() {
         return flow {
             var toolCallName: String? = null
             var toolCallArgs: Map<String, Any> = emptyMap()
+            val startTime = System.nanoTime()
+            var firstTokenTime: Long? = null
+            var tokenCount = 0
 
             managed.conversation.sendMessageAsync(
                     request.message,
                     extraContext = mapOf("enable_thinking" to "true")
                 )
                 .collect { msg ->
+                    if (firstTokenTime == null) firstTokenTime = System.nanoTime()
+                    tokenCount++
                     accumulated.append(msg.toString())
                     if (msg.toolCalls.isNotEmpty()) {
                         val tc = msg.toolCalls.first()
@@ -195,6 +201,19 @@ class GemmaService : LifecycleService() {
                         thinkingText = thinking
                     ))
                 }
+
+            val endTime = System.nanoTime()
+            val totalMs = (endTime - startTime) / 1_000_000
+            val ttftMs = firstTokenTime?.let { (it - startTime) / 1_000_000 } ?: 0L
+            val decodeMs = firstTokenTime?.let { (endTime - it) / 1_000_000 } ?: totalMs
+            val tokPerSec = if (decodeMs > 0) tokenCount * 1000f / decodeMs else 0f
+            val stats = InferenceStats(
+                tokensPerSecond = tokPerSec,
+                timeToFirstTokenMs = ttftMs,
+                totalTokens = tokenCount,
+                totalTimeMs = totalMs,
+                backend = engine.backendName
+            )
 
             val raw = accumulated.toString()
             val (_, response) = parseThinkingAndResponse(raw)
@@ -212,7 +231,15 @@ class GemmaService : LifecycleService() {
                 emit(StreamChunk(
                     responseText = response,
                     thinkingText = null,
-                    actionResult = actionResult
+                    actionResult = actionResult,
+                    stats = stats
+                ))
+            } else {
+                // Emit a final chunk with stats attached
+                emit(StreamChunk(
+                    responseText = response,
+                    thinkingText = null,
+                    stats = stats
                 ))
             }
         }.flowOn(Dispatchers.IO)
@@ -242,12 +269,17 @@ class GemmaService : LifecycleService() {
         return flow {
             var toolCallName: String? = null
             var toolCallArgs: Map<String, Any> = emptyMap()
+            val startTime = System.nanoTime()
+            var firstTokenTime: Long? = null
+            var tokenCount = 0
 
             managed.conversation.sendMessageAsync(
                     contents,
                     extraContext = mapOf("enable_thinking" to "true")
                 )
                 .collect { msg ->
+                    if (firstTokenTime == null) firstTokenTime = System.nanoTime()
+                    tokenCount++
                     accumulated.append(msg.toString())
                     if (msg.toolCalls.isNotEmpty()) {
                         val tc = msg.toolCalls.first()
@@ -261,6 +293,19 @@ class GemmaService : LifecycleService() {
                         thinkingText = thinking
                     ))
                 }
+
+            val endTime = System.nanoTime()
+            val totalMs = (endTime - startTime) / 1_000_000
+            val ttftMs = firstTokenTime?.let { (it - startTime) / 1_000_000 } ?: 0L
+            val decodeMs = firstTokenTime?.let { (endTime - it) / 1_000_000 } ?: totalMs
+            val tokPerSec = if (decodeMs > 0) tokenCount * 1000f / decodeMs else 0f
+            val stats = InferenceStats(
+                tokensPerSecond = tokPerSec,
+                timeToFirstTokenMs = ttftMs,
+                totalTokens = tokenCount,
+                totalTimeMs = totalMs,
+                backend = engine.backendName
+            )
 
             val (_, response) = parseThinkingAndResponse(accumulated.toString())
             managed.recordExchange(request.message.length, response.length)
@@ -277,7 +322,14 @@ class GemmaService : LifecycleService() {
                 emit(StreamChunk(
                     responseText = response,
                     thinkingText = null,
-                    actionResult = actionResult
+                    actionResult = actionResult,
+                    stats = stats
+                ))
+            } else {
+                emit(StreamChunk(
+                    responseText = response,
+                    thinkingText = null,
+                    stats = stats
                 ))
             }
         }.flowOn(Dispatchers.IO)

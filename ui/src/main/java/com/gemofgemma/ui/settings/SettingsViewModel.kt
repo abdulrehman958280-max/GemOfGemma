@@ -23,9 +23,22 @@ class SettingsViewModel @Inject constructor(
             initialValue = emptySet()
         )
 
+    val showInferenceStats: StateFlow<Boolean> = toolPreferencesRepository.showInferenceStatsFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = true
+        )
+
     fun toggleTool(tool: ToolDefinition, enabled: Boolean) {
         viewModelScope.launch {
             toolPreferencesRepository.setToolEnabled(tool.id, enabled)
+        }
+    }
+
+    fun setShowInferenceStats(enabled: Boolean) {
+        viewModelScope.launch {
+            toolPreferencesRepository.setShowInferenceStats(enabled)
         }
     }
 }

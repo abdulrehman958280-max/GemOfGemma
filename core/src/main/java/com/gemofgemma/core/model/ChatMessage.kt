@@ -14,7 +14,9 @@ data class ChatMessage(
     val detections: List<DetectionResult>? = null,
     val ocrBlocks: List<OcrTextBlock>? = null,
     val messageType: MessageType = MessageType.TEXT,
-    val thinkingContent: String? = null
+    val thinkingContent: String? = null,
+    /** Per-message inference stats — transient, not persisted. */
+    @Transient val stats: InferenceStats? = null
 ) {
     @Serializable
     enum class Role {
@@ -44,7 +46,8 @@ data class ChatMessage(
             detections == other.detections &&
             ocrBlocks == other.ocrBlocks &&
             messageType == other.messageType &&
-            thinkingContent == other.thinkingContent
+            thinkingContent == other.thinkingContent &&
+            stats == other.stats
     }
 
     override fun hashCode(): Int {
@@ -57,6 +60,7 @@ data class ChatMessage(
         result = 31 * result + (ocrBlocks?.hashCode() ?: 0)
         result = 31 * result + messageType.hashCode()
         result = 31 * result + (thinkingContent?.hashCode() ?: 0)
+        result = 31 * result + (stats?.hashCode() ?: 0)
         return result
     }
 }

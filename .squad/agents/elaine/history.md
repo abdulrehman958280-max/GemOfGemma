@@ -73,3 +73,48 @@ Full ranked list of 10 ideas captured in the session report and `.squad/decision
 
 - 2026-05-07: Squad ran a four-agent showcase exploration (Elaine + Peterman + George + Jerry) at Ajay's request. Two new pillars proposed alongside the existing Talk/See/Do: **Read & Write** (translate, summarize, rewrite, smart-reply) and **Remember** (on-device RAG over photos, notes, voice memos). v1.1–v1.5 roadmap and anti-patterns now logged in .squad/decisions.md.
 - 2026-05-07: v1.0.2 shipped — GPU backend + MTP enabled with proper CPU fallback (commit 4e6b864, tag v1.0.2).
+
+### 2026-05-07 — LiteRT-LM Token Counting & Inference Metrics Research
+
+**Problem:** Our stats show wrong token counts because we count streaming `Flow<Message>` emissions, not actual tokens. With MTP/speculative decoding, each emission can contain 2-4 tokens.
+
+**Key findings from source code analysis:**
+
+1. **`Message` class properties (Kotlin):** `role`, `contents`, `toolCalls`, `channels`. NO token count field. NO metadata about how many tokens were in a chunk. The `channels` field carries thinking content (`channels["thought"]`).
+
+2. **`Message.toString()` returns DELTA text, not accumulated.** Each streaming emission is a partial chunk of text (confirmed from C++ source: `content[].text` is the delta for that callback invocation). Gallery uses `message.toString()` in `resultListener(message.toString(), false, ...)` and accumulates externally.
+
+3. **`benchmark()` top-level function EXISTS in Kotlin API** (`@ExperimentalApi`). Returns `BenchmarkInfo` with: `initTimeInSecond`, `timeToFirstTokenInSecond`, `lastPrefillTokenCount`, `lastDecodeTokenCount`, `lastPrefillTokensPerSecond`, `lastDecodeTokensPerSecond`. BUT: this is a standalone benchmark function that creates its own engine+conversation, runs synthetic prefill+decode, then returns stats. It does NOT measure a live conversation.
+
+4. **No runtime metrics from `Conversation` in Kotlin API.** The C++ `Conversation` class has `GetBenchmarkInfo()` but it's only exposed in the C API (`litert_lm_session_get_benchmark_info`), NOT in the Kotlin/JNI binding for `Conversation`. There is no way to query "how many tokens did that last response contain?" from a running conversation.
+
+5. **No tokenizer exposed in Kotlin API.** The C API has `litert_lm_engine_tokenize` and Python has tokenizer access, but the Kotlin API does not expose tokenization. Cannot count tokens precisely.
+
+6. **How Gallery does benchmarks:** Gallery's benchmark screen calls `benchmark()` (the standalone function) with specified prefillTokens/decodeTokens. For chat-mode stats, Gallery does NOT measure per-response token counts — it only measures latency (`System.currentTimeMillis() - start`). Gallery does NOT show tok/s during chat, only during benchmark mode.
+
+7. **Thinking/channels:** The `<think>...</think>` block is parsed at the C++ layer. During streaming, thinking content arrives as separate `Message` objects with `channels["thought"]` populated (no `content`), while response content arrives in normal `content[].text` messages. The Kotlin API exposes this via `message.channels["thought"]`. There is NO separate channel type field — you check `channels.isNotEmpty()`.
+
+**Token counting approaches ranked:**
+
+- **Option A (chars÷4 on delta text) — BEST PRACTICAL COMPROMISE.** Since `msg.toString()` is the delta, count chars in each delta and divide by ~4. Gemma tokenizer averages ~3.5-4 chars/token for English. Simple, no dependencies, 80-90% accurate for English. Overestimates for code (shorter tokens), underestimates for CJK.
+
+- **Option C (accumulated text diff) — UNNECESSARY.** Since toString() IS the delta already, no diffing needed. Option A works directly.
+
+- **Option B (tokenizer library) — NOT AVAILABLE.** No Kotlin tokenizer shipped with LiteRT-LM. Could bundle SentencePiece/Gemma tokenizer model file + JNI, but heavy. NOT recommended.
+
+- **Option D (post-inference query) — NOT POSSIBLE.** `Conversation.GetBenchmarkInfo()` exists in C++ but is NOT exposed in Kotlin. Would require a PR to LiteRT-LM or custom JNI.
+
+**Recommendation for GemOfGemma:**
+1. Count chars in each `msg.toString()` delta → divide by 4 → accumulate as token estimate
+2. For TTFT: timestamp the first emission (already doing this)
+3. For tok/s: `estimatedTokens / (endTime - firstEmissionTime)` for decode speed
+4. Label it "~tok/s" or "est. tok/s" to signal it's an approximation
+5. File a feature request on google-ai-edge/LiteRT-LM for token count per streaming emission
+
+**Sources:**
+- LiteRT-LM Message.kt: https://github.com/google-ai-edge/LiteRT-LM/blob/main/kotlin/java/com/google/ai/edge/litertlm/Message.kt
+- LiteRT-LM Benchmark.kt: https://github.com/google-ai-edge/LiteRT-LM/blob/main/kotlin/java/com/google/ai/edge/litertlm/Benchmark.kt
+- LiteRT-LM Conversation.kt: https://github.com/google-ai-edge/LiteRT-LM/blob/main/kotlin/java/com/google/ai/edge/litertlm/Conversation.kt
+- C++ BenchmarkInfo: https://github.com/google-ai-edge/LiteRT-LM/blob/main/runtime/engine/io_types.h
+- Gallery BenchmarkViewModel: https://github.com/google-ai-edge/gallery/blob/main/Android/src/app/src/main/java/com/google/ai/edge/gallery/ui/benchmark/BenchmarkViewModel.kt
+- Gallery LlmChatModelHelper: https://github.com/google-ai-edge/gallery/blob/main/Android/src/app/src/main/java/com/google/ai/edge/gallery/ui/llmchat/LlmChatModelHelper.kt

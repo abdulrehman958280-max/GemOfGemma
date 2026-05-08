@@ -9,5 +9,7 @@ package com.gemofgemma.core.model
 data class StreamChunk(
     val responseText: String,
     val thinkingText: String? = null,
-    val actionResult: ActionResult? = null
+    val actionResult: ActionResult? = null,
+    /** Inference performance stats — only set on the final chunk. */
+    val stats: InferenceStats? = null
 )
