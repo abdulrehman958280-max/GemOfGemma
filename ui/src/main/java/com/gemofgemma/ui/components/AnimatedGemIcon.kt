@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.gemofgemma.ui.theme.GradientEnd
 import com.gemofgemma.ui.theme.GradientStart
-import com.gemofgemma.ui.theme.GradientWarm
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -71,13 +70,12 @@ fun AnimatedGemIcon(
             drawPath(
                 path = path,
                 brush = Brush.linearGradient(
-                    colors = listOf(GradientStart, GradientEnd, GradientWarm),
+                    colors = listOf(GradientStart, GradientEnd),
                     start = Offset(0f, 0f),
                     end = Offset(this.size.width, this.size.height)
                 )
             )
 
-            // Inner highlight facet
             val innerPath = Path()
             val innerRadius = radius * 0.5f
             for (i in 0 until sides) {
