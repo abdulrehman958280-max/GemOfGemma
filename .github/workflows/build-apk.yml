@@ -68,7 +68,7 @@ jobs:
           echo "Persistent OmniCode release signing key configured."
 
       - name: Build release APKs
-        run: ./gradlew assembleRelease --stacktrace
+        run: ./gradlew --no-configuration-cache assembleRelease --stacktrace
 
       - name: Verify release APK signatures
         shell: bash
