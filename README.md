@@ -2,6 +2,11 @@
 
 ### On-Device AI Assistant for Android — Powered by Gemma 4
 
+<p align="center">
+  <a href="https://github.com/abdulrehman958280-max/GemOfGemma/actions/workflows/build-apk.yml"><img src="https://img.shields.io/badge/Build%20APK-GitHub%20Actions-2088FF?logo=github-actions&logoColor=white" alt="Build APK with GitHub Actions" /></a>
+  <a href="https://github.com/abdulrehman958280-max/GemOfGemma/releases/latest"><img src="https://img.shields.io/badge/Download-Latest%20APK-34A853?logo=android&logoColor=white" alt="Download latest APK" /></a>
+</p>
+
 ![Android](https://img.shields.io/badge/Android-14%2B-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.2-7F52FF?logo=kotlin&logoColor=white)
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
@@ -12,6 +17,14 @@ An open-source Android app showcasing **on-device AI inference** with [Gemma 4](
 No cloud APIs. No subscriptions. No data leaving your device. This is private, portable AI running on your phone's hardware.
 
 > **Keywords:** Gemma 4, on-device LLM, Android AI, LiteRT-LM, offline AI assistant, on-device inference, Jetpack Compose, function calling, multimodal AI, object detection, OCR, image captioning, visual question answering, speech to text, phone automation, Material 3, Kotlin, open source
+
+## 📱 Download APK
+
+**Latest APK:** [Download from Releases](https://github.com/abdulrehman958280-max/GemOfGemma/releases/latest)
+
+**Build a fresh APK:** [Run Build APK on GitHub Actions](https://github.com/abdulrehman958280-max/GemOfGemma/actions/workflows/build-apk.yml)
+
+The **Build APK** workflow can be started manually with **Run workflow**. It builds the release APKs, publishes them to a GitHub Release, and also uploads them as a 30-day Actions artifact. The workflow uses the project's Gradle wrapper and JDK 17, matching the Android build configuration.
 
 ## 📸 Screenshots
 
@@ -36,7 +49,7 @@ No cloud APIs. No subscriptions. No data leaving your device. This is private, p
 ## Getting Started
 
 ```bash
-git clone https://github.com/ajay-sainy/GemOfGemma.git
+git clone https://github.com/abdulrehman958280-max/GemOfGemma.git
 cd GemOfGemma
 ./gradlew installDebug
 ```
