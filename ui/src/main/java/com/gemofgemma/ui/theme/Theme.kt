@@ -1,7 +1,6 @@
 package com.gemofgemma.ui.theme
 
 import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -66,7 +65,7 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 @Composable
-fun GemOfGemmaTheme(
+fun OmniCodeTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
