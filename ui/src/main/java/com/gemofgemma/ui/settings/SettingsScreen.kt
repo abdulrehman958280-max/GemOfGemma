@@ -68,7 +68,11 @@ fun SettingsScreen(
         toolsByCategory.forEach { (category, tools) ->
             item { SectionHeader(category.title, Modifier.padding(bottom = 8.dp)) }
             item {
-                Surface(MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+                Surface(
+                    shape = MaterialTheme.shapes.large,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
+                ) {
                     Column {
                         tools.forEachIndexed { index, tool ->
                             ToolListItem(tool, enabledTools.contains(tool.id)) { settingsViewModel.toggleTool(tool, it) }
@@ -81,7 +85,11 @@ fun SettingsScreen(
 
         item { SectionHeader("Appearance", Modifier.padding(bottom = 8.dp)) }
         item {
-            Surface(MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.fillMaxWidth()) {
+            Surface(
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Column {
                     ListItem(
                         headlineContent = { Text("Theme") },
@@ -94,7 +102,12 @@ fun SettingsScreen(
                         headlineContent = { Text("Show inference stats") },
                         supportingContent = { Text("Display tokens/sec, TTFT, and backend below each response") },
                         leadingContent = { Icon(Icons.Default.Speed, null, tint = MaterialTheme.colorScheme.primary) },
-                        trailingContent = { Switch(showInferenceStats, settingsViewModel::setShowInferenceStats) },
+                        trailingContent = {
+                            Switch(
+                                checked = showInferenceStats,
+                                onCheckedChange = settingsViewModel::setShowInferenceStats
+                            )
+                        },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                     )
                 }
@@ -188,11 +201,15 @@ fun ToolListItem(tool: ToolDefinition, isEnabled: Boolean, onToggle: (Boolean) -
             supportingContent = { Text(tool.description) },
             leadingContent = { Icon(if (tool.isDangerousPermission) Icons.Default.Warning else Icons.Default.Settings, null, tint = if (tool.isDangerousPermission) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant) },
             trailingContent = {
-                Switch(isEnabled) { checked ->
-                    if (checked) {
-                        if (permissionState.status.isGranted) onToggle(true) else { triggerToggled = true; permissionState.launchPermissionRequest() }
-                    } else onToggle(false)
-                }
+                Switch(
+                    checked = isEnabled,
+                    onCheckedChange = { checked ->
+                        if (checked) {
+                            if (permissionState.status.isGranted) onToggle(true)
+                            else { triggerToggled = true; permissionState.launchPermissionRequest() }
+                        } else onToggle(false)
+                    }
+                )
             },
             colors = ListItemDefaults.colors(containerColor = Color.Transparent)
         )
@@ -201,7 +218,9 @@ fun ToolListItem(tool: ToolDefinition, isEnabled: Boolean, onToggle: (Boolean) -
             headlineContent = { Text(tool.name, fontWeight = FontWeight.Medium) },
             supportingContent = { Text(tool.description) },
             leadingContent = { Icon(Icons.Default.Settings, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-            trailingContent = { Switch(isEnabled, onToggle) },
+            trailingContent = {
+                Switch(checked = isEnabled, onCheckedChange = onToggle)
+            },
             colors = ListItemDefaults.colors(containerColor = Color.Transparent)
         )
     }
