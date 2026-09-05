@@ -26,6 +26,19 @@ No cloud APIs. No subscriptions. No data leaving your device. This is private, p
 
 The **Build APK** workflow can be started manually with **Run workflow**. It builds the release APKs, publishes them to a GitHub Release, and also uploads them as a 30-day Actions artifact. The workflow uses the project's Gradle wrapper and JDK 17, matching the Android build configuration.
 
+## 📦 Offline Model Catalog
+
+The app now keeps models as **separate, verified downloads** instead of replacing a single hard-coded model file. Open **Settings → Models** to download, resume, delete, and switch between installed models.
+
+| Model | Approx. size | Recommended RAM | Vision | Audio | Role |
+|---|---:|---:|:---:|:---:|---|
+| Gemma 4 E2B | 2.59 GB | 4 GB+ | ✓ | ✓ | Default / best Android balance |
+| Gemma 4 E4B | 3.66 GB | 8 GB+ | ✓ | ✓ | Higher-capability option |
+
+Only curated LiteRT-LM artifacts are exposed in the app. Arbitrary Hugging Face files are intentionally not accepted because a `.litertlm` extension alone does not guarantee compatibility with the Android runtime or this app's multimodal/tool pipeline.
+
+Downloads support **HTTP resume**, storage preflight checks, per-model isolation, and **SHA-256 integrity verification** before an artifact becomes active. The selected model is persisted locally and installed models can be switched without re-downloading them.
+
 ## 📸 Screenshots
 
 <p align="center">
@@ -40,11 +53,12 @@ The **Build APK** workflow can be started manually with **Run workflow**. It bui
 
 ## What It Can Do
 
-- **Chat** — Natural conversation with real-time token streaming and visible thinking/reasoning, powered by Gemma 4 E2B running entirely on-device
+- **Chat** — Natural conversation with real-time token streaming and visible thinking/reasoning, powered by Gemma 4 running entirely on-device
 - **See** — Multimodal image understanding from camera or gallery: describe scenes, detect objects with bounding boxes, read text (OCR), answer visual questions
 - **Control your phone** — 22 toggleable tools via LiteRT-LM's native ToolSet API: send SMS, make calls, set alarms, toggle flashlight, adjust volume/brightness, navigate, control media, and more
 - **Voice input** — On-device speech recognition for hands-free interaction
 - **Persistent conversations** — Chat history saved locally, multiple conversations supported
+- **Model management** — Download and switch between curated LiteRT-LM models without losing the local model cache
 
 ## Getting Started
 
@@ -54,18 +68,20 @@ cd GemOfGemma
 ./gradlew installDebug
 ```
 
-**Requirements:** Android Studio, JDK 17+, Android device with 4GB+ RAM, ~3GB storage.
+**Requirements:** Android Studio, JDK 17+, Android device with 4GB+ RAM, and enough free storage for the selected model.
 
-On first launch, the app downloads **Gemma 4 E2B** from HuggingFace (~2.5 GB, one-time). After that, it runs fully offline — no internet needed.
+On first launch, download a model from **Settings → Models**. After the model is installed and verified, inference can run fully offline.
 
 ## How It Works
 
-The app uses [LiteRT-LM](https://ai.google.dev/edge/litert-lm) to run Google's Gemma 4 model directly on Android hardware. Key technical highlights:
+The app uses [LiteRT-LM](https://ai.google.dev/edge/litert-lm) to run Google's Gemma 4 models directly on Android hardware. Key technical highlights:
 
 - **Streaming inference** via `Conversation.sendMessageAsync()` — tokens appear in real-time
 - **Native function calling** via LiteRT-LM's `ToolSet` API with `@Tool` annotations
-- **Thinking mode** with `Channel("thinking")` — visible chain-of-thought reasoning
+- **Thinking mode** with `Channel("thinking")` — visible reasoning channel
 - **Format-based response parsing** — model outputs `` ```json `` with `box_2d` for object detection (following [Google's official approach](https://ai.google.dev/gemma/docs/capabilities/vision/image))
+- **Resumable model downloads** with SHA-256 verification and isolated per-model storage
+- **Hot model switching** — the LiteRT-LM engine reloads the selected installed artifact
 - **Multi-module architecture** — `:app`, `:ui`, `:ai`, `:core`, `:actions`, `:camera`, `:voice`, `:accessibility`
 
 ## Model License
