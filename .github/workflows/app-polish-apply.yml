@@ -1,0 +1,167 @@
+name: Apply OmniCode App Polish
+
+on:
+  push:
+    branches:
+      - feat/omnicode-cream-branding-security
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: ${{ !startsWith(github.event.head_commit.message, 'chore: apply OmniCode app polish') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Apply branding, theme and permission cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path('.')
+
+          # Replace user-visible legacy branding without touching package names.
+          for base in [root / 'app/src/main', root / 'ui/src/main']:
+              for path in base.rglob('*'):
+                  if path.suffix not in {'.kt', '.xml'} or not path.is_file():
+                      continue
+                  text = path.read_text(encoding='utf-8')
+                  new = text.replace('GemOfGemma', 'OmniCode').replace('Gem of Gemma', 'OmniCode')
+                  if new != text:
+                      path.write_text(new, encoding='utf-8')
+
+          # Remove unused high-sensitivity manifest declarations that are not backed by an action.
+          manifest = root / 'app/src/main/AndroidManifest.xml'
+          text = manifest.read_text(encoding='utf-8')
+          for line in [
+              '    <uses-permission android:name="android.permission.READ_PHONE_STATE" />\n',
+              '    <uses-permission android:name="android.permission.READ_CONTACTS" />\n',
+              '    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n',
+          ]:
+              text = text.replace(line, '')
+          manifest.write_text(text, encoding='utf-8')
+
+          # Keep onboarding permission requests aligned with the manifest.
+          onboarding = root / 'ui/src/main/java/com/gemofgemma/ui/onboarding/OnboardingScreen.kt'
+          text = onboarding.read_text(encoding='utf-8')
+          text = text.replace('    Manifest.permission.READ_CONTACTS,\n', '')
+          onboarding.write_text(text, encoding='utf-8')
+
+          # Cream/white OmniCode palette with charcoal text and restrained gold accent.
+          color = root / 'ui/src/main/java/com/gemofgemma/ui/theme/Color.kt'
+          color.write_text('''package com.gemofgemma.ui.theme
+
+import androidx.compose.ui.graphics.Color
+
+// OmniCode cream + white brand palette.
+val GemViolet = Color(0xFFD6A64A)
+val GemIndigo = Color(0xFF8C6A2F)
+val GemTeal = Color(0xFF4D766E)
+val GemAmber = Color(0xFFD6A64A)
+val GemRose = Color(0xFFB84A4A)
+
+val GradientStart = Color(0xFF25282C)
+val GradientEnd = Color(0xFFD6A64A)
+val GradientWarm = Color(0xFFE8C778)
+
+val GemPrimaryLight = Color(0xFF7A5A20)
+val GemOnPrimaryLight = Color(0xFFFFFFFF)
+val GemPrimaryContainerLight = Color(0xFFF1E2C1)
+val GemOnPrimaryContainerLight = Color(0xFF281B05)
+
+val GemSecondaryLight = Color(0xFF5F5B52)
+val GemOnSecondaryLight = Color(0xFFFFFFFF)
+val GemSecondaryContainerLight = Color(0xFFEAE4D7)
+val GemOnSecondaryContainerLight = Color(0xFF1D1B17)
+
+val GemTertiaryLight = Color(0xFF426A62)
+val GemOnTertiaryLight = Color(0xFFFFFFFF)
+val GemTertiaryContainerLight = Color(0xFFC9E7DE)
+val GemOnTertiaryContainerLight = Color(0xFF00201B)
+
+val GemBackgroundLight = Color(0xFFFFFBF4)
+val GemOnBackgroundLight = Color(0xFF25282C)
+val GemSurfaceLight = Color(0xFFFFFFFF)
+val GemOnSurfaceLight = Color(0xFF25282C)
+val GemSurfaceVariantLight = Color(0xFFF0EBE1)
+val GemOnSurfaceVariantLight = Color(0xFF5D5A54)
+val GemOutlineLight = Color(0xFF7B766D)
+val GemSurfaceContainerLight = Color(0xFFF8F3EA)
+val GemSurfaceContainerHighLight = Color(0xFFF2ECE2)
+
+val GemErrorLight = Color(0xFFBA1A1A)
+val GemOnErrorLight = Color(0xFFFFFFFF)
+
+// Detection accents remain semantic rather than brand-purple.
+val DetectionGreen = Color(0xFF2E7D32)
+val DetectionBlue = Color(0xFF356AE6)
+val DetectionOrange = Color(0xFFC56A00)
+val DetectionPink = Color(0xFFB84A4A)
+val DetectionYellow = Color(0xFF8A6A00)
+val DetectionTeal = Color(0xFF2F756A)
+val DetectionPurple = Color(0xFF6F5A8E)
+val DetectionCyan = Color(0xFF247C86)
+val BoundingBoxColor = DetectionGreen
+val BoundingBoxLabelBackground = Color(0xCC25282C)
+
+val ModeDetectAccent = DetectionBlue
+val ModeCaptionAccent = DetectionGreen
+val ModeOcrAccent = DetectionPurple
+val ModeVqaAccent = DetectionOrange
+''', encoding='utf-8')
+
+          # Force the requested cream/white appearance even when the device is in dark mode.
+          theme = root / 'ui/src/main/java/com/gemofgemma/ui/theme/Theme.kt'
+          text = theme.read_text(encoding='utf-8')
+          text = text.replace('import androidx.compose.foundation.isSystemInDarkTheme\n', '')
+          text = re.sub(r'darkTheme: Boolean = isSystemInDarkTheme\(\)', 'darkTheme: Boolean = false', text)
+          theme.write_text(text, encoding='utf-8')
+
+          # Replace the animated icon's old purple/blue gradient with OmniCode charcoal/gold.
+          icon = root / 'ui/src/main/java/com/gemofgemma/ui/components/AnimatedGemIcon.kt'
+          text = icon.read_text(encoding='utf-8')
+          text = text.replace('colors = listOf(GradientStart, GradientEnd, GradientWarm)', 'colors = listOf(GradientStart, GradientEnd)')
+          icon.write_text(text, encoding='utf-8')
+
+          # Native Android 12+ splash styling; the app icon remains the launcher artwork.
+          splash_dir = root / 'app/src/main/res/values-v31'
+          splash_dir.mkdir(parents=True, exist_ok=True)
+          (splash_dir / 'themes.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="Theme.OmniCode" parent="android:Theme.Material.Light.NoActionBar">
+                  <item name="android:windowSplashScreenBackground">#F6F0E4</item>
+                  <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+                  <item name="android:windowSplashScreenIconBackgroundColor">#F6F0E4</item>
+                  <item name="android:statusBarColor">@android:color/transparent</item>
+                  <item name="android:navigationBarColor">@android:color/transparent</item>
+                  <item name="android:windowLightStatusBar">true</item>
+                  <item name="android:windowLightNavigationBar">true</item>
+              </style>
+          </resources>
+          ''', encoding='utf-8')
+
+          # Make the base window match the cream/white theme.
+          base_theme = root / 'app/src/main/res/values/themes.xml'
+          text = base_theme.read_text(encoding='utf-8')
+          if 'android:windowBackground' not in text:
+              text = text.replace('        <item name="android:navigationBarColor">@android:color/transparent</item>', '        <item name="android:navigationBarColor">@android:color/transparent</item>\n        <item name="android:windowBackground">#F6F0E4</item>\n        <item name="android:windowLightStatusBar">true</item>\n        <item name="android:windowLightNavigationBar">true</item>')
+          base_theme.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Commit changes and remove updater
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/app-polish-apply.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "chore: apply OmniCode app polish"
+          git push
