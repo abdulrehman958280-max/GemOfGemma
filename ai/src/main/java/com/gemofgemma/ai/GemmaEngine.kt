@@ -15,6 +15,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -22,10 +23,7 @@ import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * LiteRT-LM engine wrapper. The engine keeps one active conversation and can
- * hot-switch between installed models when the selected model changes.
- */
+/** LiteRT-LM engine wrapper with persisted model selection and hot switching. */
 @Singleton
 class GemmaEngine @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -45,19 +43,18 @@ class GemmaEngine @Inject constructor(
 
     init {
         scope.launch {
-            modelDownloadManager.activeModelId
-                .distinctUntilChanged()
-                .collect { modelId ->
-                    if (modelDownloadManager.isModelAvailable(modelId) && isInitialized) {
-                        Log.i(TAG, "Active model changed to $modelId; reloading LiteRT-LM engine")
-                        switchToModel(modelId)
-                    }
+            modelDownloadManager.activeModelId.distinctUntilChanged().collect { modelId ->
+                if (modelDownloadManager.isModelAvailable(modelId) && isInitialized) {
+                    Log.i(TAG, "Active model changed to $modelId; reloading LiteRT-LM engine")
+                    switchToModel(modelId)
                 }
+            }
         }
     }
 
     suspend fun initialize(modelPath: String, cacheDir: String) {
         withContext(Dispatchers.IO) { initializeInternal(modelPath, cacheDir) }
+        if (!isInitialized) throw IllegalStateException(initError ?: "Engine initialization failed")
     }
 
     private fun initializeInternal(modelPath: String, cacheDir: String) {
@@ -116,63 +113,43 @@ class GemmaEngine @Inject constructor(
 
     private fun switchToModel(modelId: String) {
         scope.launch {
-            val path = modelDownloadManager.getModelPath(modelId)
-            initializeInternal(path, context.cacheDir.path)
+            try {
+                initializeInternal(modelDownloadManager.getModelPath(modelId), context.cacheDir.path)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to switch to model $modelId", e)
+            }
         }
     }
 
-    fun getOrCreateConversation(
-        conversationId: String,
-        config: ConversationConfig,
-        systemPrompt: String
-    ): ManagedConversation {
+    fun getOrCreateConversation(conversationId: String, config: ConversationConfig, systemPrompt: String): ManagedConversation {
         synchronized(lock) {
             val existing = activeConversation
             if (existing != null && existing.id == conversationId) {
                 if (existing.systemPrompt == systemPrompt) return existing
-                Log.i(TAG, "System prompt changed. Resetting conversation.")
                 return resetConversation(conversationId, config, systemPrompt)
             }
             closeActiveConversation()
-            val eng = engine ?: throw IllegalStateException(
-                initError ?: "Engine not initialized. Call initialize() first."
-            )
-            val conversation = eng.createConversation(config)
-            return ManagedConversation(conversation, conversationId, systemPrompt).also {
-                activeConversation = it
-            }
+            val eng = engine ?: throw IllegalStateException(initError ?: "Engine not initialized. Call initialize() first.")
+            return ManagedConversation(eng.createConversation(config), conversationId, systemPrompt).also { activeConversation = it }
         }
     }
 
-    fun resetConversation(
-        conversationId: String,
-        config: ConversationConfig,
-        systemPrompt: String
-    ): ManagedConversation {
+    fun resetConversation(conversationId: String, config: ConversationConfig, systemPrompt: String): ManagedConversation {
         synchronized(lock) {
             closeActiveConversation()
-            val eng = engine ?: throw IllegalStateException(
-                initError ?: "Engine not initialized. Call initialize() first."
-            )
-            val conversation = eng.createConversation(config)
-            return ManagedConversation(conversation, conversationId, systemPrompt).also {
-                activeConversation = it
-            }
+            val eng = engine ?: throw IllegalStateException(initError ?: "Engine not initialized. Call initialize() first.")
+            return ManagedConversation(eng.createConversation(config), conversationId, systemPrompt).also { activeConversation = it }
         }
     }
 
     fun closeConversation(conversationId: String) {
-        synchronized(lock) {
-            if (activeConversation?.id == conversationId) closeActiveConversation()
-        }
+        synchronized(lock) { if (activeConversation?.id == conversationId) closeActiveConversation() }
     }
 
     fun createOneShotConversation(config: ConversationConfig): Conversation {
         synchronized(lock) {
             closeActiveConversation()
-            val eng = engine ?: throw IllegalStateException(
-                initError ?: "Engine not initialized. Call initialize() first."
-            )
+            val eng = engine ?: throw IllegalStateException(initError ?: "Engine not initialized. Call initialize() first.")
             return eng.createConversation(config)
         }
     }
