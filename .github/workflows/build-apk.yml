@@ -67,6 +67,7 @@ jobs:
           } >> "$GITHUB_ENV"
           echo "Persistent OmniCode release signing key configured."
 
+      # Configuration cache is intentionally disabled because the release source-preparation task is CI-only.
       - name: Build release APKs
         run: ./gradlew --no-configuration-cache assembleRelease --stacktrace
 
