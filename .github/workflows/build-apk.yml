@@ -40,8 +40,48 @@ jobs:
       - name: Make Gradle executable
         run: chmod +x ./gradlew
 
+      - name: Prepare release signing key
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || \
+             [ -z "$ANDROID_KEY_ALIAS" ] || [ -z "$ANDROID_KEY_PASSWORD" ]; then
+            echo "Release signing is not configured. Add these GitHub Actions secrets before distributing OmniCode APKs:" >&2
+            echo "  ANDROID_KEYSTORE_BASE64" >&2
+            echo "  ANDROID_KEYSTORE_PASSWORD" >&2
+            echo "  ANDROID_KEY_ALIAS" >&2
+            echo "  ANDROID_KEY_PASSWORD" >&2
+            exit 1
+          fi
+
+          KEYSTORE_PATH="$RUNNER_TEMP/omnicode-release.jks"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          test -s "$KEYSTORE_PATH"
+          {
+            echo "ANDROID_KEYSTORE_PATH=$KEYSTORE_PATH"
+            echo "ANDROID_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
+            echo "ANDROID_KEY_ALIAS=$ANDROID_KEY_ALIAS"
+            echo "ANDROID_KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+
       - name: Build release APKs
         run: ./gradlew assembleRelease --stacktrace
+
+      - name: Verify release APK signatures
+        shell: bash
+        run: |
+          set -euo pipefail
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
+          test -x "$APKSIGNER"
+          for apk in app/build/outputs/apk/release/*.apk; do
+            [ -f "$apk" ] || continue
+            "$APKSIGNER" verify --verbose "$apk"
+          done
 
       - name: Collect APKs only
         shell: bash
