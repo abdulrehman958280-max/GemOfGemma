@@ -16,7 +16,7 @@ concurrency:
 
 env:
   RELEASE_TAG: latest
-  ARTIFACT_NAME: GemOfGemma-APK
+  ARTIFACT_NAME: OmniCode-APK
 
 jobs:
   build:
@@ -52,7 +52,7 @@ jobs:
           found=0
           for apk in app/build/outputs/apk/release/*.apk; do
             [ -f "$apk" ] || continue
-            cp "$apk" "dist/GemOfGemma-$(basename "$apk")"
+            cp "$apk" "dist/OmniCode-$(basename "$apk")"
             found=1
           done
           if [ "$found" -eq 0 ]; then
@@ -68,16 +68,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh api --paginate \
-            -H 'Accept: application/vnd.github+json' \
-            "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" \
-            --jq '.artifacts[] | select(.name == env.ARTIFACT_NAME) | .id' \
-          | while read -r artifact_id; do
-              [ -n "$artifact_id" ] || continue
-              gh api --method DELETE \
-                -H 'Accept: application/vnd.github+json' \
-                "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}"
-            done
+          for artifact_name in "$ARTIFACT_NAME" GemOfGemma-APK; do
+            gh api --paginate \
+              -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" \
+              --jq ".artifacts[] | select(.name == \"$artifact_name\") | .id" \
+            | while read -r artifact_id; do
+                [ -n "$artifact_id" ] || continue
+                gh api --method DELETE \
+                  -H 'Accept: application/vnd.github+json' \
+                  "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}"
+              done
+          done
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -95,8 +97,8 @@ jobs:
           set -euo pipefail
           gh release delete "$RELEASE_TAG" --yes --cleanup-tag 2>/dev/null || true
           gh release create "$RELEASE_TAG" dist/*.apk \
-            --title "GemOfGemma Latest APK" \
-            --notes "Latest APK build from ${GITHUB_SHA}. Assets in this release are APK files only." \
+            --title "OmniCode Latest APK" \
+            --notes "Latest OmniCode APK build from ${GITHUB_SHA}. Assets in this release are APK files only." \
             --latest
 
       - name: Publish download links
@@ -106,7 +108,7 @@ jobs:
         shell: bash
         run: |
           {
-            echo "## APK Build Complete"
+            echo "## OmniCode APK Build Complete"
             echo
             echo "### Download APK"
             echo
