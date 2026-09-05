@@ -16,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gemofgemma.core.AiModelInfo
-import com.gemofgemma.core.model.ToolCategory
 import com.gemofgemma.core.model.ToolDefinition
 import com.gemofgemma.ui.model.ModelStatusViewModel
 import com.gemofgemma.ui.model.formatSize
@@ -39,12 +38,8 @@ fun SettingsScreen(
     val downloadError by viewModel.downloadError.collectAsStateWithLifecycle()
     val toolsByCategory = remember { ToolDefinition.ALL_TOOLS.groupBy { it.category } }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-        contentPadding = PaddingValues(bottom = 32.dp)
-    ) {
+    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), contentPadding = PaddingValues(bottom = 32.dp)) {
         item { Spacer(Modifier.height(16.dp)) }
-
         item { SectionHeader("Models", Modifier.padding(bottom = 8.dp)) }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
@@ -66,32 +61,17 @@ fun SettingsScreen(
             }
         }
         if (downloadError != null) {
-            item {
-                Text(
-                    text = downloadError!!,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(top = 8.dp, start = 8.dp, end = 8.dp)
-                )
-            }
+            item { Text(downloadError!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(8.dp)) }
         }
         item { Spacer(Modifier.height(24.dp)) }
 
         toolsByCategory.forEach { (category, tools) ->
             item { SectionHeader(category.title, Modifier.padding(bottom = 8.dp)) }
             item {
-                Surface(
-                    shape = MaterialTheme.shapes.large,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
-                ) {
+                Surface(MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
                     Column {
                         tools.forEachIndexed { index, tool ->
-                            ToolListItem(
-                                tool = tool,
-                                isEnabled = enabledTools.contains(tool.id),
-                                onToggle = { settingsViewModel.toggleTool(tool, it) }
-                            )
+                            ToolListItem(tool, enabledTools.contains(tool.id)) { settingsViewModel.toggleTool(tool, it) }
                             if (index < tools.size - 1) HorizontalDivider(Modifier.padding(horizontal = 16.dp))
                         }
                     }
@@ -101,18 +81,12 @@ fun SettingsScreen(
 
         item { SectionHeader("Appearance", Modifier.padding(bottom = 8.dp)) }
         item {
-            Surface(
-                shape = MaterialTheme.shapes.large,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Surface(MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.fillMaxWidth()) {
                 Column {
-                    var darkMode by remember { mutableStateOf(false) }
                     ListItem(
-                        headlineContent = { Text("Dark Mode") },
-                        supportingContent = { Text("Follow system default") },
+                        headlineContent = { Text("Theme") },
+                        supportingContent = { Text("Follows your Android system light/dark setting") },
                         leadingContent = { Icon(Icons.Default.DarkMode, null, tint = MaterialTheme.colorScheme.primary) },
-                        trailingContent = { Switch(darkMode, { darkMode = it }) },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                     )
                     HorizontalDivider(Modifier.padding(horizontal = 16.dp))
@@ -150,11 +124,7 @@ private fun ModelCard(
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    if (model.recommended) Icons.Default.AutoAwesome else Icons.Default.Memory,
-                    contentDescription = null,
-                    tint = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Icon(if (model.recommended) Icons.Default.AutoAwesome else Icons.Default.Memory, null, tint = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -168,22 +138,17 @@ private fun ModelCard(
                 }
                 if (isActive) Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary)
             }
-
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AssistChip(onClick = {}, enabled = false, label = { Text("${model.minRamGb} GB+ RAM") })
                 AssistChip(onClick = {}, enabled = false, label = { Text(if (model.supportsVision) "Vision" else "Text") })
                 AssistChip(onClick = {}, enabled = false, label = { Text(formatSize(model.expectedSizeBytes)) })
             }
-
             if (isDownloading) {
                 Spacer(Modifier.height(12.dp))
                 Text("Downloading ${(progress * 100).toInt()}%", style = MaterialTheme.typography.labelLarge)
                 Spacer(Modifier.height(6.dp))
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(3.dp))
-                )
+                LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(3.dp)))
                 Spacer(Modifier.height(4.dp))
                 Text("${formatSize(downloadedBytes)} / ${formatSize(totalBytes)}", style = MaterialTheme.typography.bodySmall)
             } else {
@@ -215,12 +180,8 @@ fun ToolListItem(tool: ToolDefinition, isEnabled: Boolean, onToggle: (Boolean) -
         val permissionState = rememberPermissionState(perm)
         var triggerToggled by remember { mutableStateOf(false) }
         LaunchedEffect(permissionState.status.isGranted, triggerToggled) {
-            if (triggerToggled && permissionState.status.isGranted && !isEnabled) {
-                onToggle(true)
-                triggerToggled = false
-            } else if (!permissionState.status.isGranted && isEnabled) {
-                onToggle(false)
-            }
+            if (triggerToggled && permissionState.status.isGranted && !isEnabled) { onToggle(true); triggerToggled = false }
+            else if (!permissionState.status.isGranted && isEnabled) onToggle(false)
         }
         ListItem(
             headlineContent = { Text(tool.name, fontWeight = FontWeight.Medium) },
@@ -229,8 +190,7 @@ fun ToolListItem(tool: ToolDefinition, isEnabled: Boolean, onToggle: (Boolean) -
             trailingContent = {
                 Switch(isEnabled) { checked ->
                     if (checked) {
-                        if (permissionState.status.isGranted) onToggle(true)
-                        else { triggerToggled = true; permissionState.launchPermissionRequest() }
+                        if (permissionState.status.isGranted) onToggle(true) else { triggerToggled = true; permissionState.launchPermissionRequest() }
                     } else onToggle(false)
                 }
             },
@@ -249,11 +209,5 @@ fun ToolListItem(tool: ToolDefinition, isEnabled: Boolean, onToggle: (Boolean) -
 
 @Composable
 fun SectionHeader(title: String, modifier: Modifier = Modifier) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
-        fontWeight = FontWeight.SemiBold,
-        modifier = modifier.padding(start = 8.dp)
-    )
+    Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold, modifier = modifier.padding(start = 8.dp))
 }
