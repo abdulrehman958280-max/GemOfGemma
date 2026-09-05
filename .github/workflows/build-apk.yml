@@ -8,10 +8,15 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: build-apk-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  RELEASE_TAG: latest
+  ARTIFACT_NAME: GemOfGemma-APK
 
 jobs:
   build:
@@ -38,11 +43,11 @@ jobs:
       - name: Build release APKs
         run: ./gradlew assembleRelease --stacktrace
 
-      - name: Collect APKs
-        id: apk
+      - name: Collect APKs only
         shell: bash
         run: |
           set -euo pipefail
+          rm -rf dist
           mkdir -p dist
           found=0
           for apk in app/build/outputs/apk/release/*.apk; do
@@ -54,30 +59,50 @@ jobs:
             echo "No release APK was produced" >&2
             exit 1
           fi
-          echo "APK files:"
-          ls -lh dist/
+          echo "Only APK files will be published:"
+          ls -lh dist/*.apk
+
+      - name: Remove previous Actions APK artifacts
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api --paginate \
+            -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.name == env.ARTIFACT_NAME) | .id' \
+          | while read -r artifact_id; do
+              [ -n "$artifact_id" ] || continue
+              gh api --method DELETE \
+                -H 'Accept: application/vnd.github+json' \
+                "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}"
+            done
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: GemOfGemma-APK
+          name: ${{ env.ARTIFACT_NAME }}
           path: dist/*.apk
           if-no-files-found: error
           retention-days: 30
 
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: build-${{ github.run_number }}
-          name: GemOfGemma Build ${{ github.run_number }}
-          generate_release_notes: true
-          make_latest: true
-          files: dist/*.apk
+      - name: Replace previous GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release delete "$RELEASE_TAG" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$RELEASE_TAG" dist/*.apk \
+            --title "GemOfGemma Latest APK" \
+            --notes "Latest APK build from ${GITHUB_SHA}. Assets in this release are APK files only." \
+            --latest
 
       - name: Publish download links
         env:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          RELEASE_URL: ${{ github.server_url }}/${{ github.repository }}/releases/tag/build-${{ github.run_number }}
+          RELEASE_URL: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ env.RELEASE_TAG }}
         shell: bash
         run: |
           {
@@ -85,12 +110,14 @@ jobs:
             echo
             echo "### Download APK"
             echo
-            echo "Permanent release page: ${RELEASE_URL}"
+            echo "Latest release: ${RELEASE_URL}"
             echo
             echo "Workflow run / artifact: ${RUN_URL}"
             echo
-            echo "### Files"
+            echo "### Published files"
             for apk in dist/*.apk; do
               echo "- \`$(basename "$apk")\`"
             done
+            echo
+            echo "Old release assets and old Actions APK artifacts are replaced on every run."
           } >> "$GITHUB_STEP_SUMMARY"
