@@ -15,8 +15,26 @@ android {
         applicationId = "com.gemofgemma"
         minSdk = 31
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.0.3"
+        versionCode = 5
+        versionName = "1.0.4"
+    }
+
+    signingConfigs {
+        val releaseStoreFile = System.getenv("ANDROID_KEYSTORE_PATH")
+        val releaseStorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+        val releaseKeyAlias = System.getenv("ANDROID_KEY_ALIAS")
+        val releaseKeyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+
+        if (!releaseStoreFile.isNullOrBlank() && !releaseStorePassword.isNullOrBlank() &&
+            !releaseKeyAlias.isNullOrBlank() && !releaseKeyPassword.isNullOrBlank()
+        ) {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
     }
 
     buildTypes {
@@ -27,8 +45,13 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Allow release builds without a custom keystore (for sideloading)
-            signingConfig = signingConfigs.getByName("debug")
+            // CI uses the persistent private release key when the signing secrets are configured.
+            // Local builds retain the debug fallback so developers can still assembleRelease.
+            signingConfig = if (signingConfigs.findByName("release") != null) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 
@@ -71,7 +94,6 @@ dependencies {
     implementation(libs.lifecycle.runtime.ktx)
     implementation(libs.lifecycle.runtime.compose)
 
-    // Compose
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)
@@ -79,21 +101,16 @@ dependencies {
     implementation(libs.compose.ui.tooling.preview)
     debugImplementation(libs.compose.ui.tooling)
 
-    // Navigation
     implementation(libs.navigation.compose)
 
-    // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
 
-    // Coroutines
     implementation(libs.kotlinx.coroutines.android)
 
-    // Serialization
     implementation(libs.kotlinx.serialization.json)
 
-    // Testing
     testImplementation(libs.junit5)
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
