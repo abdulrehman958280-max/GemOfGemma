@@ -10,14 +10,14 @@
         android:fillColor="@android:color/transparent"
         android:strokeColor="#25282C"
         android:strokeWidth="13"
-        android:strokeLineCap="ROUND"
+        android:strokeLineCap="round"
         android:pathData="M54,18 A36,36 0,0 0,54,90" />
 
     <path
         android:fillColor="@android:color/transparent"
         android:strokeColor="#D6A64A"
         android:strokeWidth="13"
-        android:strokeLineCap="ROUND"
+        android:strokeLineCap="round"
         android:pathData="M54,18 A36,36 0,0 1,54,90" />
 
     <!-- Code brackets -->
@@ -25,16 +25,16 @@
         android:fillColor="@android:color/transparent"
         android:strokeColor="#25282C"
         android:strokeWidth="5"
-        android:strokeLineCap="ROUND"
-        android:strokeLineJoin="ROUND"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
         android:pathData="M45,42 L37,54 L45,66" />
 
     <path
         android:fillColor="@android:color/transparent"
         android:strokeColor="#D6A64A"
         android:strokeWidth="5"
-        android:strokeLineCap="ROUND"
-        android:strokeLineJoin="ROUND"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
         android:pathData="M63,42 L71,54 L63,66" />
 
     <!-- Slash -->
@@ -42,7 +42,7 @@
         android:fillColor="@android:color/transparent"
         android:strokeColor="#D6A64A"
         android:strokeWidth="5"
-        android:strokeLineCap="ROUND"
+        android:strokeLineCap="round"
         android:pathData="M58,37 L50,71" />
 
 </vector>
