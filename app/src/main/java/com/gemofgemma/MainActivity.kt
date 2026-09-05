@@ -15,7 +15,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.gemofgemma.ai.GemmaService
 import com.gemofgemma.navigation.NavGraph
-import com.gemofgemma.ui.theme.GemOfGemmaTheme
+import com.gemofgemma.ui.theme.OmniCodeTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            GemOfGemmaTheme {
+            OmniCodeTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     NavGraph()
                 }

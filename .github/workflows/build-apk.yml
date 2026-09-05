@@ -16,7 +16,7 @@ concurrency:
 
 env:
   RELEASE_TAG: latest
-  ARTIFACT_NAME: GemOfGemma-APK
+  ARTIFACT_NAME: OmniCode-APK
 
 jobs:
   build:
@@ -52,7 +52,7 @@ jobs:
           found=0
           for apk in app/build/outputs/apk/release/*.apk; do
             [ -f "$apk" ] || continue
-            cp "$apk" "dist/GemOfGemma-$(basename "$apk")"
+            cp "$apk" "dist/OmniCode-$(basename "$apk")"
             found=1
           done
           if [ "$found" -eq 0 ]; then
@@ -62,7 +62,7 @@ jobs:
           echo "Only APK files will be published:"
           ls -lh dist/*.apk
 
-      - name: Remove previous Actions APK artifacts
+      - name: Remove previous OmniCode APK artifacts
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -95,8 +95,8 @@ jobs:
           set -euo pipefail
           gh release delete "$RELEASE_TAG" --yes --cleanup-tag 2>/dev/null || true
           gh release create "$RELEASE_TAG" dist/*.apk \
-            --title "GemOfGemma Latest APK" \
-            --notes "Latest APK build from ${GITHUB_SHA}. Assets in this release are APK files only." \
+            --title "OmniCode Latest APK" \
+            --notes "Latest OmniCode APK build from ${GITHUB_SHA}. Assets in this release are APK files only." \
             --latest
 
       - name: Publish download links
@@ -106,7 +106,7 @@ jobs:
         shell: bash
         run: |
           {
-            echo "## APK Build Complete"
+            echo "## OmniCode APK Build Complete"
             echo
             echo "### Download APK"
             echo

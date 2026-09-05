@@ -9,20 +9,20 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 
 /**
- * AccessibilityService implementation for GemOfGemma.
+ * AccessibilityService implementation for OmniCode.
  * Enables UI automation — reading screen content, tapping elements,
  * typing text, and performing global actions (home, back, recents).
  *
  * Must be enabled manually by the user in Settings > Accessibility.
  * Access the running instance via [instance] companion property.
  */
-class GemOfGemmaAccessibilityService : AccessibilityService(), AccessibilityBridge {
+class OmniCodeAccessibilityService : AccessibilityService(), AccessibilityBridge {
 
     companion object {
-        private const val TAG = "GemOfGemmaA11y"
+        private const val TAG = "OmniCodeA11y"
 
         @Volatile
-        var instance: GemOfGemmaAccessibilityService? = null
+        var instance: OmniCodeAccessibilityService? = null
             private set
     }
 
@@ -54,13 +54,9 @@ class GemOfGemmaAccessibilityService : AccessibilityService(), AccessibilityBrid
         super.onDestroy()
     }
 
-    // --- AccessibilityBridge implementation ---
-
     override fun isServiceEnabled(): Boolean = instance != null
 
-    override fun executeGlobalAction(action: Int): Boolean {
-        return performGlobalAction(action)
-    }
+    override fun executeGlobalAction(action: Int): Boolean = performGlobalAction(action)
 
     override fun findAndClickByText(text: String): Boolean {
         val rootNode = rootInActiveWindow ?: return false
@@ -70,7 +66,6 @@ class GemOfGemmaAccessibilityService : AccessibilityService(), AccessibilityBrid
             if (target.isClickable) {
                 target.performAction(AccessibilityNodeInfo.ACTION_CLICK)
             } else {
-                // Walk up to find a clickable parent
                 findClickableParent(target)?.performAction(AccessibilityNodeInfo.ACTION_CLICK)
                     ?: false
             }
@@ -116,8 +111,6 @@ class GemOfGemmaAccessibilityService : AccessibilityService(), AccessibilityBrid
         }
         return nodes
     }
-
-    // --- Private helpers ---
 
     private fun findClickableParent(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
         var current = node.parent

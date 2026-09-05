@@ -5,35 +5,44 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Gemstone shape - a faceted gem -->
-    <!-- Main gem body -->
+    <!-- OmniCode split-ring emblem -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,28 L72,44 L54,80 L36,44 Z" />
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#25282C"
+        android:strokeWidth="13"
+        android:strokeLineCap="ROUND"
+        android:pathData="M54,18 A36,36 0,0 0,54,90" />
 
-    <!-- Top facet (lighter) -->
     <path
-        android:fillColor="#E8DEF8"
-        android:pathData="M54,28 L72,44 L54,48 L36,44 Z" />
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#D6A64A"
+        android:strokeWidth="13"
+        android:strokeLineCap="ROUND"
+        android:pathData="M54,18 A36,36 0,0 1,54,90" />
 
-    <!-- Left facet -->
+    <!-- Code brackets -->
     <path
-        android:fillColor="#D0BCFF"
-        android:pathData="M36,44 L54,48 L54,80 Z" />
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#25282C"
+        android:strokeWidth="5"
+        android:strokeLineCap="ROUND"
+        android:strokeLineJoin="ROUND"
+        android:pathData="M45,42 L37,54 L45,66" />
 
-    <!-- Right facet -->
     <path
-        android:fillColor="#F3EEFF"
-        android:pathData="M72,44 L54,48 L54,80 Z" />
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#D6A64A"
+        android:strokeWidth="5"
+        android:strokeLineCap="ROUND"
+        android:strokeLineJoin="ROUND"
+        android:pathData="M63,42 L71,54 L63,66" />
 
-    <!-- Sparkle top-right -->
+    <!-- Slash -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M70,30 L72,26 L74,30 L78,32 L74,34 L72,38 L70,34 L66,32 Z" />
-
-    <!-- Sparkle small -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M32,36 L33,34 L34,36 L36,37 L34,38 L33,40 L32,38 L30,37 Z" />
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#D6A64A"
+        android:strokeWidth="5"
+        android:strokeLineCap="ROUND"
+        android:pathData="M58,37 L50,71" />
 
 </vector>

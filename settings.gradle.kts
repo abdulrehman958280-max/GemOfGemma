@@ -20,7 +20,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "GemOfGemma"
+rootProject.name = "OmniCode"
 
 include(":app")
 include(":core")

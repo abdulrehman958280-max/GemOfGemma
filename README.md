@@ -1,10 +1,10 @@
-# Gem of Gemma 💎
+# OmniCode
 
 ### On-Device AI Assistant for Android — Powered by Gemma 4
 
 <p align="center">
-  <a href="https://github.com/abdulrehman958280-max/GemOfGemma/actions/workflows/build-apk.yml"><img src="https://img.shields.io/badge/Build%20APK-GitHub%20Actions-2088FF?logo=github-actions&logoColor=white" alt="Build APK with GitHub Actions" /></a>
-  <a href="https://github.com/abdulrehman958280-max/GemOfGemma/releases/latest"><img src="https://img.shields.io/badge/Download-Latest%20APK-34A853?logo=android&logoColor=white" alt="Download latest APK" /></a>
+  <a href="https://github.com/abdulrehman958280-max/GemOfGemma/actions/workflows/build-apk.yml"><img src="https://img.shields.io/badge/Build%20APK-GitHub%20Actions-2088FF?logo=github-actions&logoColor=white" alt="Build OmniCode APK with GitHub Actions" /></a>
+  <a href="https://github.com/abdulrehman958280-max/GemOfGemma/releases/latest"><img src="https://img.shields.io/badge/Download-Latest%20APK-34A853?logo=android&logoColor=white" alt="Download latest OmniCode APK" /></a>
 </p>
 
 ![Android](https://img.shields.io/badge/Android-14%2B-3DDC84?logo=android&logoColor=white)
@@ -42,9 +42,9 @@ Downloads support **HTTP resume**, storage preflight checks, per-model isolation
 ## 📸 Screenshots
 
 <p align="center">
-  <img src="screenshots/chat-home.png" width="220" alt="Gem of Gemma chat home screen with suggestion chips" />
+  <img src="screenshots/chat-home.png" width="220" alt="OmniCode chat home screen with suggestion chips" />
   <img src="screenshots/chat-response.png" width="220" alt="Gemma 4 native function calling - set alarm tool" />
-  <img src="screenshots/thinking-mode.png" width="220" alt="Gemma 4 thinking mode with chain of thought reasoning" />
+  <img src="screenshots/thinking-mode.png" width="220" alt="Gemma 4 thinking mode" />
 </p>
 <p align="center">
   <img src="screenshots/image-caption.png" width="220" alt="On-device OCR and image understanding with Gemma 4" />
