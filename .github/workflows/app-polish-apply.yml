@@ -1,6 +1,5 @@
 name: Apply OmniCode App Polish
 
-# Temporary one-shot updater for the feature branch.
 on:
   push:
     branches:
@@ -11,7 +10,6 @@ permissions:
 
 jobs:
   apply:
-    if: ${{ !startsWith(github.event.head_commit.message, 'chore: apply OmniCode app polish') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
