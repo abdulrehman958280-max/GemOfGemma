@@ -38,6 +38,10 @@ class ModelStatusViewModel @Inject constructor(
     fun downloadModel(modelId: String) {
         viewModelScope.launch {
             _downloadError.value = null
+            aiProcessor.selectModel(modelId).onFailure { e ->
+                _downloadError.value = e.message ?: "Could not select model"
+                return@launch
+            }
             aiProcessor.downloadModel(modelId).onFailure { e ->
                 _downloadError.value = e.message ?: "Download failed"
             }
