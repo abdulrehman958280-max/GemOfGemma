@@ -1,9 +1,7 @@
 package com.gemofgemma.ui.theme
 
 import android.app.Activity
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -12,7 +10,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val LightColorScheme = lightColorScheme(
+private val OmniCodeColorScheme = lightColorScheme(
     primary = GemPrimaryLight,
     onPrimary = GemOnPrimaryLight,
     primaryContainer = GemPrimaryContainerLight,
@@ -38,39 +36,11 @@ private val LightColorScheme = lightColorScheme(
     onError = GemOnErrorLight
 )
 
-private val DarkColorScheme = darkColorScheme(
-    primary = GemPrimaryDark,
-    onPrimary = GemOnPrimaryDark,
-    primaryContainer = GemPrimaryContainerDark,
-    onPrimaryContainer = GemOnPrimaryContainerDark,
-    secondary = GemSecondaryDark,
-    onSecondary = GemOnSecondaryDark,
-    secondaryContainer = GemSecondaryContainerDark,
-    onSecondaryContainer = GemOnSecondaryContainerDark,
-    tertiary = GemTertiaryDark,
-    onTertiary = GemOnTertiaryDark,
-    tertiaryContainer = GemTertiaryContainerDark,
-    onTertiaryContainer = GemOnTertiaryContainerDark,
-    background = GemBackgroundDark,
-    onBackground = GemOnBackgroundDark,
-    surface = GemSurfaceDark,
-    onSurface = GemOnSurfaceDark,
-    surfaceVariant = GemSurfaceVariantDark,
-    onSurfaceVariant = GemOnSurfaceVariantDark,
-    outline = GemOutlineDark,
-    surfaceContainer = GemSurfaceContainerDark,
-    surfaceContainerHigh = GemSurfaceContainerHighDark,
-    error = GemErrorDark,
-    onError = GemOnErrorDark
-)
-
 @Composable
 fun OmniCodeTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
-
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
@@ -78,14 +48,14 @@ fun OmniCodeTheme(
             window.statusBarColor = Color.Transparent.toArgb()
             window.navigationBarColor = Color.Transparent.toArgb()
             WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = !darkTheme
-                isAppearanceLightNavigationBars = !darkTheme
+                isAppearanceLightStatusBars = true
+                isAppearanceLightNavigationBars = true
             }
         }
     }
 
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = OmniCodeColorScheme,
         typography = GemTypography,
         shapes = GemShapes,
         content = content
