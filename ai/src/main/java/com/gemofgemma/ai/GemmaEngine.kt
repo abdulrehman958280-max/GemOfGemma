@@ -16,7 +16,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -43,7 +42,7 @@ class GemmaEngine @Inject constructor(
 
     init {
         scope.launch {
-            modelDownloadManager.activeModelId.distinctUntilChanged().collect { modelId ->
+            modelDownloadManager.activeModelId.collect { modelId ->
                 if (modelDownloadManager.isModelAvailable(modelId) && isInitialized) {
                     Log.i(TAG, "Active model changed to $modelId; reloading LiteRT-LM engine")
                     switchToModel(modelId)
