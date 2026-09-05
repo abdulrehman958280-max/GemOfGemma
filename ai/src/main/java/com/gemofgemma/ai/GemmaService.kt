@@ -92,28 +92,30 @@ class GemmaService : LifecycleService() {
             }
         }
 
-        // Initialize engine if model is already available
+        // Initialize engine if the persisted active model is already available
         lifecycleScope.launch(Dispatchers.IO) {
-            if (modelDownloadManager.isModelAvailable()) {
-                initializeEngine()
+            val activeModelId = modelDownloadManager.activeModelId.value
+            if (modelDownloadManager.isModelAvailable(activeModelId)) {
+                initializeEngine(activeModelId)
             } else {
-                Log.i(TAG, "Model not available — waiting for user-initiated download")
+                Log.i(TAG, "Active model not available — waiting for user-initiated download")
                 updateNotification("Waiting for model download")
             }
         }
 
-        // Watch for model becoming available after user-triggered download
+        // Watch for the active model becoming available after user-triggered download
         lifecycleScope.launch {
             modelDownloadManager.isModelAvailableFlow.collect { available ->
                 if (available && !engine.isInitialized) {
-                    withContext(Dispatchers.IO) { initializeEngine() }
+                    val activeModelId = modelDownloadManager.activeModelId.value
+                    withContext(Dispatchers.IO) { initializeEngine(activeModelId) }
                 }
             }
         }
     }
 
     override fun onDestroy() {
-        engine.release()
+        engine.shutdown()
         super.onDestroy()
     }
 
@@ -593,18 +595,18 @@ class GemmaService : LifecycleService() {
             .build()
     }
 
-    private suspend fun initializeEngine() {
+    private suspend fun initializeEngine(modelId: String) {
         try {
             engine.initialize(
-                modelPath = modelDownloadManager.getModelPath(),
+                modelPath = modelDownloadManager.getModelPath(modelId),
                 cacheDir = cacheDir.path
             )
             _isEngineReady.value = true
             updateNotification("AI engine active")
-            Log.i(TAG, "GemmaService ready")
+            Log.i(TAG, "GemmaService ready with model $modelId")
         } catch (e: Exception) {
             _isEngineReady.value = false
-            Log.e(TAG, "Failed to initialize engine", e)
+            Log.e(TAG, "Failed to initialize engine for model $modelId", e)
             updateNotification("Engine initialization failed")
         }
     }
@@ -679,4 +681,3 @@ class GemmaService : LifecycleService() {
         }
     }
 }
-
