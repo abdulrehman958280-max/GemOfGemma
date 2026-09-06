@@ -28,5 +28,8 @@ sealed class ActionResult {
     data class Success(val message: String) : ActionResult()
     data class Error(val message: String, val cause: Throwable? = null) : ActionResult()
     data class PermissionRequired(val permissions: List<String>) : ActionResult()
-    data class NeedsConfirmation(val actionDescription: String, val onConfirm: () -> Unit) : ActionResult()
+    data class NeedsConfirmation(
+        val actionDescription: String,
+        val action: ParsedAction
+    ) : ActionResult()
 }

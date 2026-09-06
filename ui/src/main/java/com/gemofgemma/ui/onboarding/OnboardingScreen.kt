@@ -1,5 +1,7 @@
 package com.gemofgemma.ui.onboarding
 
+import com.gemofgemma.ui.R
+import androidx.compose.ui.res.stringResource
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -127,7 +129,7 @@ fun OnboardingScreen(
 
             if (pagerState.currentPage < 2) {
                 GradientButton(
-                    text = if (pagerState.currentPage == 0) "Get Started" else "Continue",
+                    text = if (pagerState.currentPage == 0) stringResource(R.string.onboarding_get_started) else stringResource(R.string.onboarding_continue),
                     onClick = {
                         scope.launch {
                             pagerState.animateScrollToPage(pagerState.currentPage + 1)
@@ -153,7 +155,7 @@ private fun WelcomePage() {
         Spacer(modifier = Modifier.height(40.dp))
 
         Text(
-            text = "GemOfGemma",
+            text = stringResource(R.string.onboarding_omnicode),
             style = MaterialTheme.typography.displaySmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
@@ -162,7 +164,7 @@ private fun WelcomePage() {
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = "Your Private AI Assistant",
+            text = stringResource(R.string.onboarding_your_private_ai_assistant),
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Medium
@@ -171,7 +173,7 @@ private fun WelcomePage() {
         Spacer(modifier = Modifier.height(20.dp))
 
         Text(
-            text = "Powered by Gemma 4 — everything runs locally.\nYour data never leaves your device.",
+            text = stringResource(R.string.onboarding_powered_by_gemma_4_everything_runs_locally_yo),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -192,7 +194,7 @@ private fun FeaturesPage() {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "What you can do",
+            text = stringResource(R.string.onboarding_what_you_can_do),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
@@ -281,7 +283,7 @@ private fun PermissionsPage(
         Spacer(modifier = Modifier.height(20.dp))
 
         Text(
-            text = "Permissions",
+            text = stringResource(R.string.onboarding_permissions),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )
@@ -289,7 +291,7 @@ private fun PermissionsPage(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "GemOfGemma needs a few permissions to help you effectively.",
+            text = stringResource(R.string.onboarding_omnicode_needs_a_few_permissions_to_help_you_),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -311,7 +313,7 @@ private fun PermissionsPage(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        GradientButton(text = "Allow Permissions", onClick = onGrant)
+        GradientButton(text = stringResource(R.string.onboarding_allow_permissions), onClick = onGrant)
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -320,7 +322,7 @@ private fun PermissionsPage(
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.large
         ) {
-            Text("Skip for Now")
+            Text(stringResource(R.string.onboarding_skip_for_now))
         }
 
         Spacer(modifier = Modifier.height(80.dp))
@@ -396,7 +398,7 @@ private fun ModelPage(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Model Ready \u2713",
+                text = stringResource(R.string.onboarding_model_ready),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.tertiary
@@ -405,7 +407,7 @@ private fun ModelPage(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Gemma 4 E2B is downloaded and ready to use.",
+                text = stringResource(R.string.onboarding_gemma_4_e2b_is_downloaded_and_ready_to_use),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -413,7 +415,7 @@ private fun ModelPage(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            GradientButton(text = "Continue", onClick = onComplete)
+            GradientButton(text = stringResource(R.string.onboarding_continue), onClick = onComplete)
         } else {
             // ── Download State ──
             Icon(
@@ -426,7 +428,7 @@ private fun ModelPage(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Model Setup",
+                text = stringResource(R.string.onboarding_model_setup),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -434,7 +436,7 @@ private fun ModelPage(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Gemma 4 E2B needs to be downloaded once.",
+                text = stringResource(R.string.onboarding_gemma_4_e2b_needs_to_be_downloaded_once),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -489,7 +491,7 @@ private fun ModelPage(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Not on WiFi. This download is 2.58 GB.",
+                            text = stringResource(R.string.onboarding_not_on_wifi_this_download_is_2_58_gb),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onTertiaryContainer
                         )
@@ -510,12 +512,12 @@ private fun ModelPage(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "Gemma 4 E2B",
+                            text = stringResource(R.string.onboarding_gemma_4_e2b),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "2.58 GB",
+                            text = stringResource(R.string.onboarding_2_58_gb),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -564,7 +566,7 @@ private fun ModelPage(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Runs entirely on-device. Your data stays private.",
+                            text = stringResource(R.string.onboarding_runs_entirely_on_device_your_data_stays_priva),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -590,7 +592,7 @@ private fun ModelPage(
                 )
             } else {
                 Text(
-                    text = "Download continues in background if you leave.",
+                    text = stringResource(R.string.onboarding_download_continues_in_background_if_you_leave),
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -625,7 +627,7 @@ private fun PageIndicator(pageCount: Int, currentPage: Int) {
                 else
                     MaterialTheme.colorScheme.outlineVariant,
                 animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                label = "dot_color"
+                label = stringResource(R.string.onboarding_dot_color)
             )
             Box(
                 modifier = Modifier

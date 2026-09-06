@@ -57,7 +57,7 @@ class ActionDispatcher @Inject constructor(
             is SafetyValidator.ValidationResult.NeedsConfirmation -> {
                 ActionResult.NeedsConfirmation(
                     actionDescription = validation.reason,
-                    onConfirm = { /* Caller should use dispatchConfirmed() instead */ }
+                    action = action
                 )
             }
             is SafetyValidator.ValidationResult.Approved -> {

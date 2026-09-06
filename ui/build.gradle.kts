@@ -32,6 +32,7 @@ kotlin {
 
 dependencies {
     implementation(project(":core"))
+    implementation(project(":actions"))
     implementation(project(":voice"))
     implementation(project(":camera"))
 

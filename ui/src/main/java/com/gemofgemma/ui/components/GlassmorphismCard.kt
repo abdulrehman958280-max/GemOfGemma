@@ -31,6 +31,7 @@ fun GlassmorphismCard(
                 color = borderColor,
                 shape = MaterialTheme.shapes.large
             )
+            .blur(blur)
             .padding(16.dp),
         content = content
     )

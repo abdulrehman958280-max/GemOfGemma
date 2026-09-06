@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_ask_me_anything">Ask me anything</string>
+    <string name="chat_camera">Camera</string>
+    <string name="chat_cancel">Cancel</string>
+    <string name="chat_cd_camera">Camera</string>
+    <string name="chat_cd_choose_photo">Choose photo</string>
+    <string name="chat_cd_download_model">Download model</string>
+    <string name="chat_cd_tools">Tools</string>
+    <string name="chat_confirm">Confirm</string>
+    <string name="chat_confirm_action">Confirm action</string>
+    <string name="chat_conversations">Conversations</string>
+    <string name="chat_delete">Delete</string>
+    <string name="chat_delete_conversation">Delete conversation?</string>
+    <string name="chat_delete_this_conversation_this_can_t_be_undone">Delete this conversation? This cannot be undone.</string>
+    <string name="chat_gallery">Gallery</string>
+    <string name="chat_no_conversations_yet">No conversations yet</string>
+    <string name="chat_powered_by_gemma_4_running_entirely_on_your_d">Powered by Gemma 4 — running entirely on your device</string>
+    <string name="chat_settings">Settings</string>
+    <string name="chat_suggestion">"$suggestion"</string>
+    <string name="onboarding_2_58_gb">2.58 GB</string>
+    <string name="onboarding_allow_permissions">Allow Permissions</string>
+    <string name="onboarding_continue">Continue</string>
+    <string name="onboarding_dot_color">dot_color</string>
+    <string name="onboarding_download_continues_in_background_if_you_leave">Download continues in background if you leave.</string>
+    <string name="onboarding_gemma_4_e2b">Gemma 4 E2B</string>
+    <string name="onboarding_gemma_4_e2b_is_downloaded_and_ready_to_use">Gemma 4 E2B is downloaded and ready to use.</string>
+    <string name="onboarding_gemma_4_e2b_needs_to_be_downloaded_once">Gemma 4 E2B needs to be downloaded once.</string>
+    <string name="onboarding_get_started">Get Started</string>
+    <string name="onboarding_model_ready">Model Ready ✓</string>
+    <string name="onboarding_model_setup">Model Setup</string>
+    <string name="onboarding_not_on_wifi_this_download_is_2_58_gb">Not on WiFi. This download is 2.58 GB.</string>
+    <string name="onboarding_omnicode">OmniCode</string>
+    <string name="onboarding_omnicode_needs_a_few_permissions_to_help_you_">OmniCode needs a few permissions to help you effectively.</string>
+    <string name="onboarding_permissions">Permissions</string>
+    <string name="onboarding_powered_by_gemma_4_everything_runs_locally_yo">Powered by Gemma 4 — everything runs locally.
+Your data never leaves your device.</string>
+    <string name="onboarding_runs_entirely_on_device_your_data_stays_priva">Runs entirely on-device. Your data stays private.</string>
+    <string name="onboarding_skip_for_now">Skip for Now</string>
+    <string name="onboarding_what_you_can_do">What you can do</string>
+    <string name="onboarding_your_private_ai_assistant">Your Private AI Assistant</string>
+    <string name="settings_active">Active</string>
+    <string name="settings_delete">Delete</string>
+    <string name="settings_download">Download</string>
+    <string name="settings_recommended">Recommended</string>
+    <string name="settings_resume">Resume</string>
+    <string name="settings_show_inference_stats">Show inference stats</string>
+    <string name="settings_text">Text</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_use_model">Use model</string>
+    <string name="settings_vision">Vision</string>
+</resources>

@@ -6,10 +6,12 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.gemofgemma.actions.ActionDispatcher
 import com.gemofgemma.core.AiProcessor
 import com.gemofgemma.core.data.ChatRepository
 import com.gemofgemma.core.data.ToolPreferencesRepository
 import com.gemofgemma.core.model.AiRequest
+import com.gemofgemma.core.model.ActionResult
 import com.gemofgemma.core.model.AiResponse
 import com.gemofgemma.core.model.ChatMessage
 import com.gemofgemma.voice.VoiceRecognizer
@@ -17,8 +19,11 @@ import com.gemofgemma.voice.VoiceState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
@@ -35,11 +40,18 @@ class ChatViewModel @Inject constructor(
     private val aiProcessor: AiProcessor,
     private val voiceRecognizer: VoiceRecognizer,
     private val toolPreferencesRepository: ToolPreferencesRepository,
-    private val chatRepository: ChatRepository
+    private val chatRepository: ChatRepository,
+    private val actionDispatcher: ActionDispatcher
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
+
+    private val _pendingConfirmation = MutableStateFlow<ActionResult.NeedsConfirmation?>(null)
+    val pendingConfirmation: StateFlow<ActionResult.NeedsConfirmation?> = _pendingConfirmation.asStateFlow()
+
+    private val _snackbarEvent = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val snackbarEvent: SharedFlow<String> = _snackbarEvent.asSharedFlow()
 
     private var currentConversationId: String = UUID.randomUUID().toString()
     private var voiceJob: Job? = null
@@ -411,11 +423,18 @@ class ChatViewModel @Inject constructor(
             is AiResponse.ActionResponse -> {
                 val resultText = when (val result = response.actionResult) {
                     is com.gemofgemma.core.model.ActionResult.Success -> result.message
-                    is com.gemofgemma.core.model.ActionResult.Error -> "Action failed: ${result.message}"
-                    is com.gemofgemma.core.model.ActionResult.PermissionRequired ->
-                        "Permissions needed: ${result.permissions.joinToString()}"
-                    is com.gemofgemma.core.model.ActionResult.NeedsConfirmation ->
+                    is com.gemofgemma.core.model.ActionResult.Error -> {
+                        _snackbarEvent.tryEmit("Action failed: ${result.message}")
+                        ""
+                    }
+                    is com.gemofgemma.core.model.ActionResult.PermissionRequired -> {
+                        _snackbarEvent.tryEmit("Permissions needed: ${result.permissions.joinToString()}")
+                        ""
+                    }
+                    is com.gemofgemma.core.model.ActionResult.NeedsConfirmation -> {
+                        _pendingConfirmation.value = result
                         "Confirm action: ${result.actionDescription}"
+                    }
                 }
                 ChatMessage(
                     id = UUID.randomUUID().toString(),
@@ -448,6 +467,34 @@ class ChatViewModel @Inject constructor(
                 messageType = ChatMessage.MessageType.ERROR
             )
         }
+    }
+
+    fun confirmPendingAction() {
+        val pending = _pendingConfirmation.value ?: return
+        _pendingConfirmation.value = null
+        viewModelScope.launch {
+            val result = try {
+                actionDispatcher.dispatchConfirmed(pending.action)
+            } catch (e: Exception) {
+                ActionResult.Error("Confirmed action failed: ${e.message}", e)
+            }
+            val message = buildAssistantMessage(AiResponse.ActionResponse(result), pendingImage = null)
+            _uiState.update { it.copy(messages = it.messages + message) }
+            persistAssistantMessage(message)
+        }
+    }
+
+    fun cancelPendingAction() {
+        if (_pendingConfirmation.value == null) return
+        _pendingConfirmation.value = null
+        val message = ChatMessage(
+            id = UUID.randomUUID().toString(),
+            role = ChatMessage.Role.ASSISTANT,
+            content = "Cancelled",
+            messageType = ChatMessage.MessageType.ACTION
+        )
+        _uiState.update { it.copy(messages = it.messages + message) }
+        persistAssistantMessage(message)
     }
 
     fun toggleRecording() {
