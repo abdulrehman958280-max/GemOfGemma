@@ -1,4 +1,4 @@
-name: Item 11 verification
+name: Item 12 verification
 on:
   push:
     paths:
@@ -10,58 +10,107 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply Item 11
-        shell: bash
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Apply Item 12
+        shell: python
         run: |
-          set -euo pipefail
-          old='Gemma4Research/08-silent-autonomous-execution.md'
-          new='Gemma4Research/08-android-automation-api-research.md'
-          if [[ -f "$old" && ! -f "$new" ]]; then
-            git mv "$old" "$new"
-          elif [[ ! -f "$new" ]]; then
-            echo "Item 11: neither source nor destination research file exists" >&2
-            exit 1
-          fi
-          python3 - <<'PY'
           from pathlib import Path
-          old_name = '08-silent-autonomous-execution.md'
-          new_name = '08-android-automation-api-research.md'
-          note = 'Note: this is background research; nothing in this document is implemented as an app feature.'
-          research = Path('Gemma4Research') / new_name
-          text = research.read_text()
-          if note not in text:
-              lines = text.splitlines()
-              insert_at = 1 if lines and lines[0].startswith('# ') else 0
-              lines.insert(insert_at, '')
-              lines.insert(insert_at + 1, '> ' + note)
-              research.write_text('\n'.join(lines) + ('\n' if text.endswith('\n') else ''))
-          for path in Path('.').rglob('*'):
-              if not path.is_file() or '.git' in path.parts:
-                  continue
-              try:
-                  value = path.read_text()
-              except (UnicodeDecodeError, OSError):
-                  continue
-              updated = value.replace(old_name, new_name)
-              if updated != value:
-                  path.write_text(updated)
-          PY
-      - name: Re-read and validate Item 11
+          path = Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt')
+          text = path.read_text()
+
+          def extract_function(source, name):
+              marker = f'private fun {name}'
+              start = source.find('@Composable', source.find(marker) - 80)
+              if start < 0:
+                  raise SystemExit(f'Item 12: function {name} not found')
+              brace = source.find('{', source.find(marker))
+              depth = 0
+              end = None
+              for i in range(brace, len(source)):
+                  if source[i] == '{': depth += 1
+                  elif source[i] == '}':
+                      depth -= 1
+                      if depth == 0:
+                          end = i + 1
+                          break
+              if end is None:
+                  raise SystemExit(f'Item 12: unterminated function {name}')
+              return start, end, source[start:end].strip()
+
+          groups = {
+              'ChatBubble.kt': [
+                  'ChatBubble', 'InferenceStatsChip', 'TextContent', 'ImageQueryContent',
+                  'DetectionContent', 'OcrContent', 'ActionContent', 'ErrorContent', 'ThinkingSection'
+              ],
+              'ChatInputBar.kt': ['ChatInputBar', 'PendingImagePreview'],
+              'ToolPickerSheet.kt': ['ToolPickerBottomSheet', 'ToolPickerItem']
+          }
+
+          for filename, names in groups.items():
+              blocks = []
+              for name in names:
+                  start, end, block = extract_function(text, name)
+                  blocks.append((start, end, block))
+              blocks.sort(reverse=True)
+              for start, end, _ in blocks:
+                  text = text[:start] + text[end:]
+              Path('ui/src/main/java/com/gemofgemma/ui/chat/' + filename).write_text('')
+
+          # Re-read after removals and collect the blocks from the original source so exact signatures are preserved.
+          original = path.read_text()
+          file_blocks = {}
+          for filename, names in groups.items():
+              file_blocks[filename] = [extract_function(original, name)[2] for name in names]
+
+          headers = {
+              'ChatBubble.kt': '''package com.gemofgemma.ui.chat\n\nimport android.graphics.BitmapFactory\nimport androidx.compose.animation.*\nimport androidx.compose.foundation.Image\nimport androidx.compose.foundation.clickable\nimport androidx.compose.foundation.layout.*\nimport androidx.compose.foundation.text.selection.SelectionContainer\nimport androidx.compose.material.icons.Icons\nimport androidx.compose.material.icons.filled.ContentCopy\nimport androidx.compose.material.icons.filled.SmartToy\nimport androidx.compose.material3.*\nimport androidx.compose.runtime.*\nimport androidx.compose.ui.Alignment\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.draw.clip\nimport androidx.compose.ui.graphics.asImageBitmap\nimport androidx.compose.ui.platform.LocalClipboardManager\nimport androidx.compose.ui.platform.LocalContext\nimport androidx.compose.ui.text.AnnotatedString\nimport androidx.compose.ui.text.font.FontWeight\nimport androidx.compose.ui.text.style.TextOverflow\nimport androidx.compose.ui.unit.dp\nimport com.gemofgemma.core.model.ChatMessage\nimport com.gemofgemma.ui.camera.BoundingBoxOverlay\nimport com.gemofgemma.ui.components.ThinkingIndicator\n\n''',
+              'ChatInputBar.kt': '''package com.gemofgemma.ui.chat\n\nimport android.graphics.BitmapFactory\nimport androidx.compose.animation.AnimatedVisibility\nimport androidx.compose.animation.Crossfade\nimport androidx.compose.animation.core.spring\nimport androidx.compose.animation.core.tween\nimport androidx.compose.foundation.Image\nimport androidx.compose.foundation.layout.*\nimport androidx.compose.foundation.shape.CircleShape\nimport androidx.compose.foundation.shape.RoundedCornerShape\nimport androidx.compose.material.icons.Icons\nimport androidx.compose.material.icons.automirrored.filled.Send\nimport androidx.compose.material.icons.filled.Add\nimport androidx.compose.material.icons.filled.Close\nimport androidx.compose.material.icons.filled.Mic\nimport androidx.compose.material.icons.filled.MicOff\nimport androidx.compose.material.icons.filled.Stop\nimport androidx.compose.material3.*\nimport androidx.compose.runtime.*\nimport androidx.compose.ui.Alignment\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.draw.clip\nimport androidx.compose.ui.graphics.Color\nimport androidx.compose.ui.graphics.asImageBitmap\nimport androidx.compose.ui.layout.ContentScale\nimport androidx.compose.ui.unit.dp\n\n''',
+              'ToolPickerSheet.kt': '''package com.gemofgemma.ui.chat\n\nimport androidx.compose.foundation.layout.*\nimport androidx.compose.foundation.lazy.LazyColumn\nimport androidx.compose.foundation.lazy.items\nimport androidx.compose.foundation.lazy.itemsIndexed\nimport androidx.compose.foundation.shape.RoundedCornerShape\nimport androidx.compose.material.icons.Icons\nimport androidx.compose.material.icons.filled.Close\nimport androidx.compose.material.icons.filled.Search\nimport androidx.compose.material3.*\nimport androidx.compose.runtime.*\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.graphics.Color\nimport androidx.compose.ui.text.font.FontWeight\nimport androidx.compose.ui.text.style.TextOverflow\nimport androidx.compose.ui.unit.dp\nimport androidx.compose.ui.Alignment\nimport com.gemofgemma.core.model.ToolCategory\nimport com.gemofgemma.core.model.ToolDefinition\nimport com.google.accompanist.permissions.ExperimentalPermissionsApi\nimport com.google.accompanist.permissions.isGranted\nimport com.google.accompanist.permissions.rememberPermissionState\n\n'''
+          }
+          for filename, blocks in file_blocks.items():
+              Path('ui/src/main/java/com/gemofgemma/ui/chat/' + filename).write_text(headers[filename] + '\n\n'.join(blocks) + '\n')
+
+          # Extract the existing header surface into a dedicated composable while preserving its UI behavior.
+          start_marker = '        // ── Minimal header'
+          end_marker = '        // ── Model offline banner'
+          start = text.find(start_marker)
+          end = text.find(end_marker, start)
+          if start < 0 or end < 0:
+              raise SystemExit('Item 12: ChatTopBar inline header not found')
+          header_block = text[start:end]
+          header_block = header_block.replace(start_marker, '').strip()
+          topbar = '''package com.gemofgemma.ui.chat\n\nimport androidx.compose.foundation.layout.*\nimport androidx.compose.material.icons.Icons\nimport androidx.compose.material.icons.filled.Add\nimport androidx.compose.material.icons.filled.Forum\nimport androidx.compose.material.icons.filled.Settings\nimport androidx.compose.material.icons.filled.SmartToy\nimport androidx.compose.material3.*\nimport androidx.compose.runtime.Composable\nimport androidx.compose.ui.Alignment\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.unit.dp\n\n@Composable\nfun ChatTopBar(\n    onHistoryClick: () -> Unit,\n    onNewChat: () -> Unit,\n    onSettingsClick: () -> Unit\n) {\n'''
+          # Convert the original callbacks to parameters.
+          header_block = header_block.replace('onClick = viewModel::toggleConversationHistory', 'onClick = onHistoryClick')
+          header_block = header_block.replace('onClick = viewModel::newChat', 'onClick = onNewChat')
+          header_block = header_block.replace('onClick = onNavigateToSettings', 'onClick = onSettingsClick')
+          topbar += header_block + '\n}\n'
+          Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatTopBar.kt').write_text(topbar)
+
+          replacement = '''        ChatTopBar(\n            onHistoryClick = viewModel::toggleConversationHistory,\n            onNewChat = viewModel::newChat,\n            onSettingsClick = onNavigateToSettings\n        )\n\n'''
+          text = text[:start] + replacement + text[end:]
+          path.write_text(text)
+      - name: Re-read extracted files
         shell: bash
         run: |
           set -euo pipefail
-          test -f Gemma4Research/08-android-automation-api-research.md
-          grep -Fq 'Note: this is background research; nothing in this document is implemented as an app feature.' Gemma4Research/08-android-automation-api-research.md
-          if git grep -n '08-silent-autonomous-execution.md' -- . ':!Gemma4Research/08-android-automation-api-research.md'; then
-            echo 'Item 11: stale research filename reference remains' >&2
-            exit 1
-          fi
-          git status --short
-      - name: Commit Item 11
+          for f in ChatBubble.kt ChatInputBar.kt ToolPickerSheet.kt ChatTopBar.kt; do
+            test -s "ui/src/main/java/com/gemofgemma/ui/chat/$f"
+            echo "--- $f ---"
+            grep -nE '^(@OptIn|@Composable|private fun|fun )' "ui/src/main/java/com/gemofgemma/ui/chat/$f" | head -30 || true
+          done
+          grep -n 'ChatTopBar' ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt
+      - name: Compile affected module
+        run: ./gradlew --no-configuration-cache :ui:compileDebugKotlin --stacktrace
+      - name: Commit Item 12
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "docs: rename android automation research"
+          git add ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt ui/src/main/java/com/gemofgemma/ui/chat/ChatBubble.kt ui/src/main/java/com/gemofgemma/ui/chat/ChatInputBar.kt ui/src/main/java/com/gemofgemma/ui/chat/ToolPickerSheet.kt ui/src/main/java/com/gemofgemma/ui/chat/ChatTopBar.kt
+          git commit -m "refactor: split chat screen composables"
           git pull --rebase origin fix/sequential-14-item-polish
           git push origin HEAD:fix/sequential-14-item-polish
