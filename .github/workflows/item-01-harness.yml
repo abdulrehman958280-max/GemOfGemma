@@ -20,14 +20,20 @@ jobs:
         run: |
           from pathlib import Path
           path = Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt')
-          text = path.read_text()
+          original = path.read_text()
 
           def extract_function(source, name):
               marker = f'private fun {name}'
-              start = source.find('@Composable', source.find(marker) - 80)
-              if start < 0:
+              marker_pos = source.find(marker)
+              if marker_pos < 0:
                   raise SystemExit(f'Item 12: function {name} not found')
-              brace = source.find('{', source.find(marker))
+              line_start = source.rfind('\n', 0, marker_pos) + 1
+              annotation_start = source.rfind('@Composable', 0, marker_pos)
+              optin_start = source.rfind('@OptIn', 0, marker_pos)
+              start = annotation_start if annotation_start >= line_start - 160 else line_start
+              if optin_start >= line_start - 160:
+                  start = optin_start
+              brace = source.find('{', marker_pos)
               depth = 0
               end = None
               for i in range(brace, len(source)):
@@ -39,7 +45,9 @@ jobs:
                           break
               if end is None:
                   raise SystemExit(f'Item 12: unterminated function {name}')
-              return start, end, source[start:end].strip()
+              block = source[start:end].strip()
+              block = block.replace('private fun ', 'fun ', 1)
+              return start, end, block
 
           groups = {
               'ChatBubble.kt': [
@@ -50,50 +58,47 @@ jobs:
               'ToolPickerSheet.kt': ['ToolPickerBottomSheet', 'ToolPickerItem']
           }
 
+          all_ranges = []
+          extracted = {}
           for filename, names in groups.items():
               blocks = []
               for name in names:
-                  start, end, block = extract_function(text, name)
-                  blocks.append((start, end, block))
-              blocks.sort(reverse=True)
-              for start, end, _ in blocks:
-                  text = text[:start] + text[end:]
-              Path('ui/src/main/java/com/gemofgemma/ui/chat/' + filename).write_text('')
+                  start, end, block = extract_function(original, name)
+                  all_ranges.append((start, end))
+                  blocks.append(block)
+              extracted[filename] = blocks
 
-          # Re-read after removals and collect the blocks from the original source so exact signatures are preserved.
-          original = path.read_text()
-          file_blocks = {}
-          for filename, names in groups.items():
-              file_blocks[filename] = [extract_function(original, name)[2] for name in names]
+          text = original
+          for start, end in sorted(all_ranges, reverse=True):
+              text = text[:start] + text[end:]
 
-          headers = {
-              'ChatBubble.kt': '''package com.gemofgemma.ui.chat\n\nimport android.graphics.BitmapFactory\nimport androidx.compose.animation.*\nimport androidx.compose.foundation.Image\nimport androidx.compose.foundation.clickable\nimport androidx.compose.foundation.layout.*\nimport androidx.compose.foundation.text.selection.SelectionContainer\nimport androidx.compose.material.icons.Icons\nimport androidx.compose.material.icons.filled.ContentCopy\nimport androidx.compose.material.icons.filled.SmartToy\nimport androidx.compose.material3.*\nimport androidx.compose.runtime.*\nimport androidx.compose.ui.Alignment\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.draw.clip\nimport androidx.compose.ui.graphics.asImageBitmap\nimport androidx.compose.ui.platform.LocalClipboardManager\nimport androidx.compose.ui.platform.LocalContext\nimport androidx.compose.ui.text.AnnotatedString\nimport androidx.compose.ui.text.font.FontWeight\nimport androidx.compose.ui.text.style.TextOverflow\nimport androidx.compose.ui.unit.dp\nimport com.gemofgemma.core.model.ChatMessage\nimport com.gemofgemma.ui.camera.BoundingBoxOverlay\nimport com.gemofgemma.ui.components.ThinkingIndicator\n\n''',
-              'ChatInputBar.kt': '''package com.gemofgemma.ui.chat\n\nimport android.graphics.BitmapFactory\nimport androidx.compose.animation.AnimatedVisibility\nimport androidx.compose.animation.Crossfade\nimport androidx.compose.animation.core.spring\nimport androidx.compose.animation.core.tween\nimport androidx.compose.foundation.Image\nimport androidx.compose.foundation.layout.*\nimport androidx.compose.foundation.shape.CircleShape\nimport androidx.compose.foundation.shape.RoundedCornerShape\nimport androidx.compose.material.icons.Icons\nimport androidx.compose.material.icons.automirrored.filled.Send\nimport androidx.compose.material.icons.filled.Add\nimport androidx.compose.material.icons.filled.Close\nimport androidx.compose.material.icons.filled.Mic\nimport androidx.compose.material.icons.filled.MicOff\nimport androidx.compose.material.icons.filled.Stop\nimport androidx.compose.material3.*\nimport androidx.compose.runtime.*\nimport androidx.compose.ui.Alignment\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.draw.clip\nimport androidx.compose.ui.graphics.Color\nimport androidx.compose.ui.graphics.asImageBitmap\nimport androidx.compose.ui.layout.ContentScale\nimport androidx.compose.ui.unit.dp\n\n''',
-              'ToolPickerSheet.kt': '''package com.gemofgemma.ui.chat\n\nimport androidx.compose.foundation.layout.*\nimport androidx.compose.foundation.lazy.LazyColumn\nimport androidx.compose.foundation.lazy.items\nimport androidx.compose.foundation.lazy.itemsIndexed\nimport androidx.compose.foundation.shape.RoundedCornerShape\nimport androidx.compose.material.icons.Icons\nimport androidx.compose.material.icons.filled.Close\nimport androidx.compose.material.icons.filled.Search\nimport androidx.compose.material3.*\nimport androidx.compose.runtime.*\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.graphics.Color\nimport androidx.compose.ui.text.font.FontWeight\nimport androidx.compose.ui.text.style.TextOverflow\nimport androidx.compose.ui.unit.dp\nimport androidx.compose.ui.Alignment\nimport com.gemofgemma.core.model.ToolCategory\nimport com.gemofgemma.core.model.ToolDefinition\nimport com.google.accompanist.permissions.ExperimentalPermissionsApi\nimport com.google.accompanist.permissions.isGranted\nimport com.google.accompanist.permissions.rememberPermissionState\n\n'''
-          }
-          for filename, blocks in file_blocks.items():
-              Path('ui/src/main/java/com/gemofgemma/ui/chat/' + filename).write_text(headers[filename] + '\n\n'.join(blocks) + '\n')
+          # Remove orphaned annotations left by functions moved to separate files.
+          screen_marker = '@Composable\nfun ChatScreen'
+          head, tail = text.split(screen_marker, 1)
+          tail = tail.replace('@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)\n', '')
+          tail = tail.replace('@OptIn(ExperimentalPermissionsApi::class)\n', '')
+          text = head + screen_marker + tail
 
-          # Extract the existing header surface into a dedicated composable while preserving its UI behavior.
+          # Remove the existing inline header; ChatTopBar below preserves the same controls and callbacks.
           start_marker = '        // ── Minimal header'
           end_marker = '        // ── Model offline banner'
           start = text.find(start_marker)
           end = text.find(end_marker, start)
           if start < 0 or end < 0:
-              raise SystemExit('Item 12: ChatTopBar inline header not found')
-          header_block = text[start:end]
-          header_block = header_block.replace(start_marker, '').strip()
-          topbar = '''package com.gemofgemma.ui.chat\n\nimport androidx.compose.foundation.layout.*\nimport androidx.compose.material.icons.Icons\nimport androidx.compose.material.icons.filled.Add\nimport androidx.compose.material.icons.filled.Forum\nimport androidx.compose.material.icons.filled.Settings\nimport androidx.compose.material.icons.filled.SmartToy\nimport androidx.compose.material3.*\nimport androidx.compose.runtime.Composable\nimport androidx.compose.ui.Alignment\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.unit.dp\n\n@Composable\nfun ChatTopBar(\n    onHistoryClick: () -> Unit,\n    onNewChat: () -> Unit,\n    onSettingsClick: () -> Unit\n) {\n'''
-          # Convert the original callbacks to parameters.
-          header_block = header_block.replace('onClick = viewModel::toggleConversationHistory', 'onClick = onHistoryClick')
-          header_block = header_block.replace('onClick = viewModel::newChat', 'onClick = onNewChat')
-          header_block = header_block.replace('onClick = onNavigateToSettings', 'onClick = onSettingsClick')
-          topbar += header_block + '\n}\n'
-          Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatTopBar.kt').write_text(topbar)
-
-          replacement = '''        ChatTopBar(\n            onHistoryClick = viewModel::toggleConversationHistory,\n            onNewChat = viewModel::newChat,\n            onSettingsClick = onNavigateToSettings\n        )\n\n'''
+              raise SystemExit('Item 12: inline ChatTopBar block not found')
+          replacement = '''        ChatTopBar(\n            onHistoryClick = viewModel::toggleConversationHistory,\n            onNewChat = viewModel::newChat,\n            onSettingsClick = onNavigateToSettings\n        )\n'''
           text = text[:start] + replacement + text[end:]
           path.write_text(text)
+
+          headers = {
+              'ChatBubble.kt': '''package com.gemofgemma.ui.chat\n\nimport android.graphics.BitmapFactory\nimport androidx.compose.animation.*\nimport androidx.compose.animation.core.Spring\nimport androidx.compose.animation.core.spring\nimport androidx.compose.foundation.Image\nimport androidx.compose.foundation.clickable\nimport androidx.compose.foundation.layout.*\nimport androidx.compose.foundation.shape.RoundedCornerShape\nimport androidx.compose.foundation.text.selection.SelectionContainer\nimport androidx.compose.material.icons.Icons\nimport androidx.compose.material.icons.filled.ContentCopy\nimport androidx.compose.material.icons.filled.SmartToy\nimport androidx.compose.material3.*\nimport androidx.compose.runtime.*\nimport androidx.compose.ui.Alignment\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.draw.clip\nimport androidx.compose.ui.graphics.asImageBitmap\nimport androidx.compose.ui.layout.ContentScale\nimport androidx.compose.ui.platform.LocalClipboardManager\nimport androidx.compose.ui.platform.LocalContext\nimport androidx.compose.ui.text.AnnotatedString\nimport androidx.compose.ui.text.font.FontWeight\nimport androidx.compose.ui.text.style.TextOverflow\nimport androidx.compose.ui.unit.dp\nimport com.gemofgemma.core.model.ChatMessage\nimport com.gemofgemma.ui.camera.BoundingBoxOverlay\nimport com.gemofgemma.ui.components.ThinkingIndicator\n\n''',
+              'ChatInputBar.kt': '''package com.gemofgemma.ui.chat\n\nimport android.graphics.BitmapFactory\nimport androidx.compose.animation.AnimatedVisibility\nimport androidx.compose.animation.Crossfade\nimport androidx.compose.animation.core.tween\nimport androidx.compose.foundation.Image\nimport androidx.compose.foundation.layout.*\nimport androidx.compose.foundation.shape.CircleShape\nimport androidx.compose.foundation.shape.RoundedCornerShape\nimport androidx.compose.material.icons.Icons\nimport androidx.compose.material.icons.automirrored.filled.Send\nimport androidx.compose.material.icons.filled.Add\nimport androidx.compose.material.icons.filled.Close\nimport androidx.compose.material.icons.filled.Mic\nimport androidx.compose.material.icons.filled.MicOff\nimport androidx.compose.material.icons.filled.Stop\nimport androidx.compose.material3.*\nimport androidx.compose.runtime.*\nimport androidx.compose.ui.Alignment\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.draw.clip\nimport androidx.compose.ui.graphics.Color\nimport androidx.compose.ui.graphics.asImageBitmap\nimport androidx.compose.ui.layout.ContentScale\nimport androidx.compose.ui.unit.dp\n\n''',
+              'ToolPickerSheet.kt': '''package com.gemofgemma.ui.chat\n\nimport androidx.compose.foundation.layout.*\nimport androidx.compose.foundation.lazy.LazyColumn\nimport androidx.compose.foundation.shape.RoundedCornerShape\nimport androidx.compose.material.icons.Icons\nimport androidx.compose.material.icons.filled.Close\nimport androidx.compose.material.icons.filled.Search\nimport androidx.compose.material3.*\nimport androidx.compose.runtime.*\nimport androidx.compose.ui.Alignment\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.graphics.Color\nimport androidx.compose.ui.text.font.FontWeight\nimport androidx.compose.ui.text.style.TextOverflow\nimport androidx.compose.ui.unit.dp\nimport com.gemofgemma.core.model.ToolCategory\nimport com.gemofgemma.core.model.ToolDefinition\nimport com.google.accompanist.permissions.ExperimentalPermissionsApi\nimport com.google.accompanist.permissions.rememberPermissionState\n\n'''
+          }
+          for filename, blocks in extracted.items():
+              Path('ui/src/main/java/com/gemofgemma/ui/chat/' + filename).write_text(headers[filename] + '\n\n'.join(blocks) + '\n')
+
+          Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatTopBar.kt').write_text('''package com.gemofgemma.ui.chat\n\nimport androidx.compose.foundation.layout.*\nimport androidx.compose.material.icons.Icons\nimport androidx.compose.material.icons.filled.Add\nimport androidx.compose.material.icons.filled.Forum\nimport androidx.compose.material.icons.filled.Settings\nimport androidx.compose.material.icons.filled.SmartToy\nimport androidx.compose.material3.*\nimport androidx.compose.runtime.Composable\nimport androidx.compose.ui.Alignment\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.text.font.FontWeight\nimport androidx.compose.ui.unit.dp\n\n@Composable\nfun ChatTopBar(\n    onHistoryClick: () -> Unit,\n    onNewChat: () -> Unit,\n    onSettingsClick: () -> Unit\n) {\n    Surface(\n        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),\n        tonalElevation = 2.dp\n    ) {\n        Row(\n            modifier = Modifier\n                .fillMaxWidth()\n                .statusBarsPadding()\n                .padding(horizontal = 8.dp, vertical = 10.dp),\n            verticalAlignment = Alignment.CenterVertically\n        ) {\n            Icon(\n                Icons.Default.SmartToy,\n                contentDescription = "OmniCode",\n                tint = MaterialTheme.colorScheme.primary,\n                modifier = Modifier.size(28.dp)\n            )\n            Spacer(modifier = Modifier.width(8.dp))\n            Text(\n                text = "OmniCode",\n                style = MaterialTheme.typography.titleMedium,\n                fontWeight = FontWeight.SemiBold,\n                color = MaterialTheme.colorScheme.onSurface\n            )\n            Spacer(modifier = Modifier.weight(1f))\n            IconButton(onClick = onHistoryClick, modifier = Modifier.size(48.dp)) {\n                Icon(Icons.Default.Forum, contentDescription = "Chat History", tint = MaterialTheme.colorScheme.onSurfaceVariant)\n            }\n            IconButton(onClick = onNewChat, modifier = Modifier.size(48.dp)) {\n                Icon(Icons.Default.Add, contentDescription = "New Chat", tint = MaterialTheme.colorScheme.primary)\n            }\n            IconButton(onClick = onSettingsClick, modifier = Modifier.size(48.dp)) {\n                Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)\n            }\n        }\n    }\n}\n''')
       - name: Re-read extracted files
         shell: bash
         run: |
@@ -101,7 +106,7 @@ jobs:
           for f in ChatBubble.kt ChatInputBar.kt ToolPickerSheet.kt ChatTopBar.kt; do
             test -s "ui/src/main/java/com/gemofgemma/ui/chat/$f"
             echo "--- $f ---"
-            grep -nE '^(@OptIn|@Composable|private fun|fun )' "ui/src/main/java/com/gemofgemma/ui/chat/$f" | head -30 || true
+            grep -nE '^(@OptIn|@Composable|fun )' "ui/src/main/java/com/gemofgemma/ui/chat/$f" | head -30 || true
           done
           grep -n 'ChatTopBar' ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt
       - name: Compile affected module
