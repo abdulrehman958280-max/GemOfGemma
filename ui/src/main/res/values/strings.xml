@@ -35,4 +35,14 @@ Your data never leaves your device.</string>
     <string name="onboarding_skip_for_now">Skip for Now</string>
     <string name="onboarding_what_you_can_do">What you can do</string>
     <string name="onboarding_your_private_ai_assistant">Your Private AI Assistant</string>
+    <string name="settings_active">Active</string>
+    <string name="settings_delete">Delete</string>
+    <string name="settings_download">Download</string>
+    <string name="settings_recommended">Recommended</string>
+    <string name="settings_resume">Resume</string>
+    <string name="settings_show_inference_stats">Show inference stats</string>
+    <string name="settings_text">Text</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_use_model">Use model</string>
+    <string name="settings_vision">Vision</string>
 </resources>

@@ -1,5 +1,7 @@
 package com.gemofgemma.ui.settings
 
+import com.gemofgemma.ui.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -98,14 +100,14 @@ fun SettingsScreen(
             ) {
                 Column {
                     ListItem(
-                        headlineContent = { Text("Theme") },
+                        headlineContent = { Text(stringResource(R.string.settings_theme)) },
                         supportingContent = { Text("Follows your Android system light/dark setting") },
                         leadingContent = { Icon(Icons.Default.DarkMode, null, tint = MaterialTheme.colorScheme.primary) },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                     )
                     HorizontalDivider(Modifier.padding(horizontal = 16.dp))
                     ListItem(
-                        headlineContent = { Text("Show inference stats") },
+                        headlineContent = { Text(stringResource(R.string.settings_show_inference_stats)) },
                         supportingContent = { Text("Display tokens/sec, TTFT, and backend below each response") },
                         leadingContent = { Icon(Icons.Default.Speed, null, tint = MaterialTheme.colorScheme.primary) },
                         trailingContent = {
@@ -150,7 +152,7 @@ private fun ModelCard(
                         Text(model.name, fontWeight = FontWeight.SemiBold)
                         if (model.recommended) {
                             Spacer(Modifier.width(8.dp))
-                            AssistChip(onClick = {}, label = { Text("Recommended") }, enabled = false)
+                            AssistChip(onClick = {}, label = { Text(stringResource(R.string.settings_recommended)) }, enabled = false)
                         }
                     }
                     Text(model.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -160,7 +162,7 @@ private fun ModelCard(
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AssistChip(onClick = {}, enabled = false, label = { Text("${model.minRamGb} GB+ RAM") })
-                AssistChip(onClick = {}, enabled = false, label = { Text(if (model.supportsVision) "Vision" else "Text") })
+                AssistChip(onClick = {}, enabled = false, label = { Text(if (model.supportsVision) stringResource(R.string.settings_vision) else stringResource(R.string.settings_text)) })
                 AssistChip(onClick = {}, enabled = false, label = { Text(formatSize(model.expectedSizeBytes)) })
             }
             if (isDownloading) {
@@ -174,15 +176,15 @@ private fun ModelCard(
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (isInstalled && !isActive) {
-                        Button(onClick = onSelect) { Text("Use model") }
+                        Button(onClick = onSelect) { Text(stringResource(R.string.settings_use_model)) }
                     } else if (!isInstalled) {
-                        Button(onClick = onDownload) { Icon(Icons.Default.Download, null); Spacer(Modifier.width(6.dp)); Text(if (hasPartialDownload) "Resume" else "Download") }
+                        Button(onClick = onDownload) { Icon(Icons.Default.Download, null); Spacer(Modifier.width(6.dp)); Text(if (hasPartialDownload) stringResource(R.string.settings_resume) else stringResource(R.string.settings_download)) }
                     } else {
-                        OutlinedButton(onClick = {}, enabled = false) { Icon(Icons.Default.Check, null); Spacer(Modifier.width(6.dp)); Text("Active") }
+                        OutlinedButton(onClick = {}, enabled = false) { Icon(Icons.Default.Check, null); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.settings_active)) }
                     }
                     if (isInstalled) {
                         TextButton(onClick = onDelete, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
-                            Icon(Icons.Default.Delete, null); Spacer(Modifier.width(4.dp)); Text("Delete")
+                            Icon(Icons.Default.Delete, null); Spacer(Modifier.width(4.dp)); Text(stringResource(R.string.settings_delete))
                         }
                     }
                 }
