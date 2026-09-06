@@ -20,12 +20,16 @@ jobs:
         run: |
           from pathlib import Path
 
+          def fix_imports(s):
+              s = s.replace('import androidx.compose.ui.hapticfeedback.LocalHapticFeedback\n', 'import androidx.compose.ui.platform.LocalHapticFeedback\n')
+              return s
+
           chat = Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt')
-          s = chat.read_text()
+          s = fix_imports(chat.read_text())
           if 'import androidx.compose.ui.hapticfeedback.HapticFeedbackType' not in s:
               s = s.replace('import androidx.compose.ui.graphics.asImageBitmap\n', 'import androidx.compose.ui.graphics.asImageBitmap\nimport androidx.compose.ui.hapticfeedback.HapticFeedbackType\n', 1)
           if 'import androidx.compose.ui.platform.LocalHapticFeedback' not in s:
-              s = s.replace('import androidx.compose.ui.platform.LocalClipboardManager\n', 'import androidx.compose.ui.hapticfeedback.LocalHapticFeedback\nimport androidx.compose.ui.platform.LocalClipboardManager\n', 1)
+              s = s.replace('import androidx.compose.ui.platform.LocalSoftwareKeyboardController\n', 'import androidx.compose.ui.platform.LocalHapticFeedback\nimport androidx.compose.ui.platform.LocalSoftwareKeyboardController\n', 1)
           state_marker = '    val keyboardController = LocalSoftwareKeyboardController.current\n'
           if 'val haptics = LocalHapticFeedback.current' not in s:
               if state_marker not in s: raise SystemExit('Item 6: ChatScreen state marker not found')
@@ -33,36 +37,32 @@ jobs:
           s = s.replace('TextButton(onClick = viewModel::confirmPendingAction) { Text("Confirm") }', 'TextButton(onClick = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); viewModel.confirmPendingAction() }) { Text("Confirm") }', 1)
           send_old = '''                    onSend = {\n                        keyboardController?.hide()\n                        viewModel.sendMessage()\n                    },'''
           send_new = '''                    onSend = {\n                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)\n                        keyboardController?.hide()\n                        viewModel.sendMessage()\n                    },'''
-          if send_old in s:
-              s = s.replace(send_old, send_new, 1)
-          elif 'haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)' not in s:
-              raise SystemExit('Item 6: send callback marker not found')
+          if send_old in s: s = s.replace(send_old, send_new, 1)
           delete_old = '''                            onClick = {\n                                pendingDelete = null\n                                onDelete(conversation.id)\n                            }'''
           delete_new = '''                            onClick = {\n                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)\n                                pendingDelete = null\n                                onDelete(conversation.id)\n                            }'''
-          if delete_old in s:
-              s = s.replace(delete_old, delete_new, 1)
-          elif 'haptics.performHapticFeedback(HapticFeedbackType.LongPress)' not in s:
-              raise SystemExit('Item 6: delete confirmation callback marker not found')
+          if delete_old in s: s = s.replace(delete_old, delete_new, 1)
           tool_call_old = '            onToggleTool = viewModel::toggleTool,'
           tool_call_new = '            onToggleTool = { toolId, enabled ->\n                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)\n                viewModel.toggleTool(toolId, enabled)\n            },'
-          if tool_call_old in s:
-              s = s.replace(tool_call_old, tool_call_new, 1)
-          elif 'onToggleTool = { toolId, enabled ->' not in s:
-              raise SystemExit('Item 6: tool picker callback marker not found')
+          if tool_call_old in s: s = s.replace(tool_call_old, tool_call_new, 1)
+          history_marker = '    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)\n'
+          if 'private fun ConversationHistorySheet' in s and '    val haptics = LocalHapticFeedback.current\n    var pendingDelete' not in s:
+              if history_marker not in s: raise SystemExit('Item 6: conversation history state marker not found')
+              s = s.replace(history_marker, history_marker + '    val haptics = LocalHapticFeedback.current\n', 1)
           chat.write_text(s)
 
           settings = Path('ui/src/main/java/com/gemofgemma/ui/settings/SettingsScreen.kt')
-          s = settings.read_text()
+          s = fix_imports(settings.read_text())
           if 'import androidx.compose.ui.hapticfeedback.HapticFeedbackType' not in s:
-              s = s.replace('import androidx.compose.ui.graphics.Color\n', 'import androidx.compose.ui.graphics.Color\nimport androidx.compose.ui.hapticfeedback.HapticFeedbackType\nimport androidx.compose.ui.hapticfeedback.LocalHapticFeedback\n', 1)
+              s = s.replace('import androidx.compose.ui.graphics.Color\n', 'import androidx.compose.ui.graphics.Color\nimport androidx.compose.ui.hapticfeedback.HapticFeedbackType\n', 1)
+          if 'import androidx.compose.ui.platform.LocalHapticFeedback' not in s:
+              s = s.replace('import androidx.compose.ui.Modifier\n', 'import androidx.compose.ui.Modifier\nimport androidx.compose.ui.platform.LocalHapticFeedback\n', 1)
           marker = '    val showInferenceStats by settingsViewModel.showInferenceStats.collectAsStateWithLifecycle()\n'
           if 'val haptics = LocalHapticFeedback.current' not in s:
               if marker not in s: raise SystemExit('Item 6: SettingsScreen state marker not found')
               s = s.replace(marker, marker + '    val haptics = LocalHapticFeedback.current\n', 1)
           old = '                            ToolListItem(tool, enabledTools.contains(tool.id)) { settingsViewModel.toggleTool(tool, it) }'
           new = '                            ToolListItem(tool, enabledTools.contains(tool.id)) { enabled ->\n                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)\n                                settingsViewModel.toggleTool(tool, enabled)\n                            }'
-          if old in s:
-              s = s.replace(old, new, 1)
+          if old in s: s = s.replace(old, new, 1)
           settings.write_text(s)
       - name: Re-read Item 6 changes
         run: |
