@@ -1,3 +1,5 @@
+Note: this is background research; nothing in this document is implemented as an app feature.
+
 > **Note:** this is background research; nothing in this document is implemented as an app feature.
 
 # Android Automation API Research — Gemma 4
