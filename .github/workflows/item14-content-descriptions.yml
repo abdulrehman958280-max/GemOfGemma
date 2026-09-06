@@ -1,0 +1,64 @@
+name: Item 14 content descriptions
+on:
+  push:
+    paths:
+      - .github/workflows/item14-content-descriptions.yml
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Fix actionable ChatScreen content descriptions
+        shell: python
+        run: |
+          from pathlib import Path
+          import re, html
+          path=Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt')
+          resource=Path('ui/src/main/res/values/strings.xml')
+          text=path.read_text(); lines=text.splitlines(keepends=True)
+          mapping={'Close':'Close','Mic':'Microphone','MicOff':'Stop microphone','AddPhotoAlternate':'Attach image','PhotoLibrary':'Choose photo','CameraAlt':'Camera','Build':'Tools','Send':'Send','Settings':'Settings','Forum':'Conversation history','Add':'New chat','CloudDownload':'Download model','Stop':'Stop generation'}
+          resources={}
+          if resource.exists():
+              for name,value in re.findall(r'<string name="([^"]+)">(.*?)</string>',resource.read_text(),re.S): resources[name]=html.unescape(value)
+          out=[]; changed=0
+          for i,line in enumerate(lines):
+              if 'contentDescription = null' not in line:
+                  out.append(line); continue
+              icon='Action button'
+              for prior in reversed(lines[max(0,i-8):i+1]):
+                  m=re.search(r'Icons\.(?:Default|Filled|AutoMirrored\.Filled)\.([A-Za-z0-9]+)',prior)
+                  if m:
+                      icon=mapping.get(m.group(1),m.group(1)); break
+              slug='chat_cd_' + re.sub(r'[^a-z0-9]+','_',icon.lower()).strip('_')
+              name=slug; base=name; n=2
+              while name in resources and resources[name] != icon: name=f'{base}_{n}'; n+=1
+              resources[name]=icon
+              line=line.replace('contentDescription = null',f'contentDescription = stringResource(R.string.{name})',1)
+              out.append(line); changed+=1
+          if changed==0: raise SystemExit('No contentDescription = null found in ChatScreen')
+          text=''.join(out); first_import=text.find('import ')
+          if 'import androidx.compose.ui.res.stringResource' not in text: text=text[:first_import]+'import androidx.compose.ui.res.stringResource\n'+text[first_import:]
+          if 'import com.gemofgemma.ui.R' not in text: text=text[:first_import]+'import com.gemofgemma.ui.R\n'+text[first_import:]
+          path.write_text(text)
+          resource.parent.mkdir(parents=True,exist_ok=True)
+          xml=['<?xml version="1.0" encoding="utf-8"?>','<resources>']
+          for name,value in sorted(resources.items()): xml.append(f'    <string name="{name}">{html.escape(value,quote=False)}</string>')
+          xml.append('</resources>'); resource.write_text('\n'.join(xml)+'\n')
+          print(f'Fixed {changed} ChatScreen content descriptions')
+      - name: Compile affected UI module
+        run: ./gradlew --no-configuration-cache :ui:compileDebugKotlin --stacktrace
+      - name: Commit verified Item 14
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git grep -n 'contentDescription = null' -- ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt || true
+          git add ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt ui/src/main/res/values/strings.xml
+          git commit -m "fix: add chat content descriptions"
+          git push origin HEAD:fix/sequential-14-item-polish
