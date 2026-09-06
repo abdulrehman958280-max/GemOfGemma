@@ -21,45 +21,43 @@ jobs:
           from pathlib import Path
           vm = Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatViewModel.kt')
           s = vm.read_text()
-          for old, new in [
-              ('import kotlinx.coroutines.flow.MutableStateFlow\n', 'import kotlinx.coroutines.flow.MutableSharedFlow\nimport kotlinx.coroutines.flow.MutableStateFlow\n'),
-              ('import kotlinx.coroutines.flow.StateFlow\n', 'import kotlinx.coroutines.flow.SharedFlow\nimport kotlinx.coroutines.flow.StateFlow\n'),
-              ('import kotlinx.coroutines.flow.asStateFlow\n', 'import kotlinx.coroutines.flow.asSharedFlow\nimport kotlinx.coroutines.flow.asStateFlow\n')]:
-              if new not in s and old in s: s = s.replace(old, new, 1)
+          s = s.replace('import kotlinx.coroutines.flow.MutableStateFlow\n', 'import kotlinx.coroutines.flow.MutableSharedFlow\nimport kotlinx.coroutines.flow.MutableStateFlow\n', 1) if 'MutableSharedFlow' not in s else s
+          s = s.replace('import kotlinx.coroutines.flow.StateFlow\n', 'import kotlinx.coroutines.flow.SharedFlow\nimport kotlinx.coroutines.flow.StateFlow\n', 1) if 'SharedFlow' not in s else s
+          s = s.replace('import kotlinx.coroutines.flow.asStateFlow\n', 'import kotlinx.coroutines.flow.asSharedFlow\nimport kotlinx.coroutines.flow.asStateFlow\n', 1) if 'asSharedFlow' not in s else s
           marker = '    val pendingConfirmation: StateFlow<ActionResult.NeedsConfirmation?> = _pendingConfirmation.asStateFlow()\n'
           if 'val snackbarEvent: SharedFlow<String>' not in s:
+              if marker not in s: raise SystemExit('Item 7 VM state marker not found')
               s = s.replace(marker, marker + '\n    private val _snackbarEvent = MutableSharedFlow<String>(extraBufferCapacity = 1)\n    val snackbarEvent: SharedFlow<String> = _snackbarEvent.asSharedFlow()\n', 1)
           old = 'is com.gemofgemma.core.model.ActionResult.Error -> "Action failed: ${result.message}"\n                    is com.gemofgemma.core.model.ActionResult.PermissionRequired ->\n                        "Permissions needed: ${result.permissions.joinToString()}"'
           new = '''is com.gemofgemma.core.model.ActionResult.Error -> {\n                        _snackbarEvent.tryEmit("Action failed: ${result.message}")\n                        ""\n                    }\n                    is com.gemofgemma.core.model.ActionResult.PermissionRequired -> {\n                        _snackbarEvent.tryEmit("Permissions needed: ${result.permissions.joinToString()}")\n                        ""\n                    }'''
-          if old not in s: raise SystemExit('Item 7 VM target not found')
-          s = s.replace(old, new, 1)
-          vm.write_text(s)
+          if old not in s: raise SystemExit('Item 7 VM action-result marker not found')
+          vm.write_text(s.replace(old, new, 1))
 
           screen = Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt')
           s = screen.read_text()
-          s = s.replace('import androidx.compose.material3.SnackbarHost\n', 'import androidx.compose.material3.SnackbarHost\nimport androidx.compose.material3.SnackbarHostState\n', 1) if 'SnackbarHostState' not in s else s
+          if 'import androidx.compose.material3.SnackbarHostState\n' not in s:
+              s = s.replace('import androidx.compose.material3.SnackbarHost\n', 'import androidx.compose.material3.SnackbarHost\nimport androidx.compose.material3.SnackbarHostState\n', 1) if 'import androidx.compose.material3.SnackbarHost\n' in s else s.replace('import androidx.compose.material3.Surface\n', 'import androidx.compose.material3.SnackbarHost\nimport androidx.compose.material3.SnackbarHostState\nimport androidx.compose.material3.Surface\n', 1)
           if 'import androidx.compose.material3.Scaffold\n' not in s:
               s = s.replace('import androidx.compose.material3.Surface\n', 'import androidx.compose.material3.Scaffold\nimport androidx.compose.material3.Surface\n', 1)
           marker = '    val pendingConfirmation by viewModel.pendingConfirmation.collectAsStateWithLifecycle()\n'
           if 'val snackbarHostState = remember { SnackbarHostState() }' not in s:
+              if marker not in s: raise SystemExit('Item 7 Screen state marker not found')
               s = s.replace(marker, marker + '    val snackbarHostState = remember { SnackbarHostState() }\n', 1)
           marker = '    LaunchedEffect(uiState.isLoading) {'
           if 'viewModel.snackbarEvent.collect' not in s:
+              if marker not in s: raise SystemExit('Item 7 Screen effect marker not found')
               s = s.replace(marker, '''    LaunchedEffect(Unit) {\n        viewModel.snackbarEvent.collect { message ->\n            snackbarHostState.showSnackbar(message)\n        }\n    }\n\n    LaunchedEffect(uiState.isLoading) {''', 1)
           old = '''    Column(\n        modifier = Modifier\n            .fillMaxSize()\n            .background(MaterialTheme.colorScheme.background)\n            .imePadding()\n    ) {'''
           new = '''    Scaffold(\n        snackbarHost = { SnackbarHost(snackbarHostState) }\n    ) { innerPadding ->\n        Column(\n            modifier = Modifier\n                .fillMaxSize()\n                .background(MaterialTheme.colorScheme.background)\n                .padding(innerPadding)\n                .imePadding()\n        ) {'''
           if 'snackbarHost = { SnackbarHost(snackbarHostState) }' not in s:
-              if old not in s: raise SystemExit('Item 7 Screen root target not found')
+              if old not in s: raise SystemExit('Item 7 Screen root Column not found')
               s = s.replace(old, new, 1)
-              # Close the Scaffold around the existing root Column before the bottom-sheet sections.
               anchor = '\n    // Tool picker bottom sheet'
               idx = s.find(anchor)
-              if idx < 0: raise SystemExit('Item 7 Screen close anchor not found')
-              prefix = s[:idx]
-              suffix = s[idx:]
-              if not prefix.rstrip().endswith('}'):
-                  raise SystemExit('Item 7 Screen malformed root')
-              s = prefix + '        }\n    }\n' + suffix
+              if idx < 0: raise SystemExit('Item 7 Screen closing anchor not found')
+              prefix, suffix = s[:idx], s[idx:]
+              closing = '\n'.join(prefix.rstrip().split('\n')[:-1]) + '\n        }\n    }\n' + suffix
+              s = closing
           screen.write_text(s)
       - name: Re-read changed files
         run: |
