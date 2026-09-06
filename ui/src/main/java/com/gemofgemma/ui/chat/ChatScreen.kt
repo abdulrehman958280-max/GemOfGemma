@@ -65,6 +65,7 @@ import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -130,6 +131,7 @@ fun ChatScreen(
     onNavigateToCapture: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val pendingConfirmation by viewModel.pendingConfirmation.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -202,6 +204,20 @@ fun ChatScreen(
         }
     }
 
+    pendingConfirmation?.let { pending ->
+        AlertDialog(
+            onDismissRequest = viewModel::cancelPendingAction,
+            title = { Text("Confirm action") },
+            text = { Text(pending.actionDescription) },
+            confirmButton = {
+                TextButton(onClick = viewModel::confirmPendingAction) { Text("Confirm") }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::cancelPendingAction) { Text("Cancel") }
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -222,13 +238,13 @@ fun ChatScreen(
             ) {
                 Icon(
                     Icons.Default.SmartToy,
-                    contentDescription = "Gem of Gemma",
+                    contentDescription = "OmniCode",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(28.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Gem of Gemma",
+                    text = "OmniCode",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -662,7 +678,7 @@ private fun ChatBubble(message: ChatMessage, showInferenceStats: Boolean = true)
                 IconButton(
                     onClick = {
                         val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("GemOfGemma", message.content))
+                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("OmniCode", message.content))
                         copied = true
                     },
                     modifier = Modifier.size(28.dp)

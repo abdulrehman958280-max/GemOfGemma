@@ -153,7 +153,7 @@ private fun WelcomePage() {
         Spacer(modifier = Modifier.height(40.dp))
 
         Text(
-            text = "GemOfGemma",
+            text = "OmniCode",
             style = MaterialTheme.typography.displaySmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
@@ -289,7 +289,7 @@ private fun PermissionsPage(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "GemOfGemma needs a few permissions to help you effectively.",
+            text = "OmniCode needs a few permissions to help you effectively.",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant
