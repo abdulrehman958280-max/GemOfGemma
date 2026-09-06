@@ -27,15 +27,13 @@ jobs:
           for p in Path('Gemma4Research').rglob('*.md'):
               t=p.read_text()
               if '08-silent-autonomous-execution.md' in t: p.write_text(t.replace('08-silent-autonomous-execution.md','08-android-automation-api-research.md'))
-      - name: Sanitize generated UI strings
+      - name: Normalize generated UI resources
         shell: python
         run: |
           from pathlib import Path
-          import re
           p=Path('ui/src/main/res/values/strings.xml')
           if p.exists():
-              t=p.read_text()
-              t=re.sub(r'(<string\b[^>]*>)(.*?)(</string>)', lambda m: m.group(1)+m.group(2).replace('\\','')+m.group(3), t, flags=re.S)
+              t=p.read_text().replace("This can't be undone.", 'This cannot be undone.')
               p.write_text(t)
       - name: Final debug build
         run: ./gradlew --no-configuration-cache assembleDebug --stacktrace
