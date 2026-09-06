@@ -1,4 +1,4 @@
-name: Item 02 verification harness
+name: Item 03 verification harness
 on:
   push:
     paths:
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: write
 jobs:
-  item-02:
+  item-03:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,40 +15,33 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
-      - name: Apply Item 2
+      - name: Apply Item 3
         shell: python
         run: |
           from pathlib import Path
           p = Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt')
           s = p.read_text()
-          start_marker = '// ── Conversation History Bottom Sheet'
-          if start_marker not in s: raise SystemExit('Item 2: conversation history section not found')
-          head, section = s.split(start_marker, 1)
-          marker = '    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)\n'
-          if 'var pendingDelete by remember { mutableStateOf<com.gemofgemma.core.data.ConversationEntity?>(null) }' not in section:
-              if marker not in section: raise SystemExit('Item 2: conversation sheet state marker not found')
-              section = section.replace(marker, marker + '    var pendingDelete by remember { mutableStateOf<com.gemofgemma.core.data.ConversationEntity?>(null) }\n', 1)
-          old_click = 'onClick = { onDelete(conv.id) },'
-          new_click = 'onClick = { pendingDelete = conv },'
-          if old_click in section:
-              section = section.replace(old_click, new_click, 1)
-          elif new_click not in section:
-              raise SystemExit('Item 2: delete button callback not found')
-          tail = '''                }\n            }\n        }\n    }\n}\n'''
-          dialog_tail = '''                }\n            }\n            pendingDelete?.let { conversation ->\n                AlertDialog(\n                    onDismissRequest = { pendingDelete = null },\n                    title = { Text("Delete conversation?") },\n                    text = { Text("Delete this conversation? This can't be undone.") },\n                    confirmButton = {\n                        TextButton(\n                            onClick = {\n                                pendingDelete = null\n                                onDelete(conversation.id)\n                            }\n                        ) { Text("Delete") }\n                    },\n                    dismissButton = {\n                        TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }\n                    }\n                )\n            }\n        }\n    }\n}\n'''
-          if 'title = { Text("Delete conversation?") }' not in section:
-              if tail not in section: raise SystemExit('Item 2: conversation sheet tail not found')
-              section = section.replace(tail, dialog_tail, 1)
-          p.write_text(head + start_marker + section)
-      - name: Re-read Item 2 change
+          before = s
+          count_36 = s.count('modifier = Modifier.size(36.dp)')
+          if count_36 == 0: raise SystemExit('Item 3: no explicit 36dp IconButton modifiers found')
+          s = s.replace('modifier = Modifier.size(36.dp)', 'modifier = Modifier.size(48.dp)')
+          if '                        .size(44.dp)' not in s:
+              raise SystemExit('Item 3: 44dp attachment button marker not found')
+          s = s.replace('                        .size(44.dp)', '                        .size(48.dp)', 1)
+          old_delete = 'modifier = Modifier.size(32.dp)'
+          if old_delete not in s: raise SystemExit('Item 3: 32dp conversation delete button marker not found')
+          s = s.replace(old_delete, 'modifier = Modifier.size(48.dp)', 1)
+          if s == before: raise SystemExit('Item 3: no changes made')
+          p.write_text(s)
+      - name: Re-read Item 3 changes
         run: |
-          grep -n "pendingDelete\|Delete conversation\|onDelete(conversation.id)" ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt
+          grep -n "size(48.dp)" ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt
       - name: Compile ui
         run: ./gradlew --no-configuration-cache :ui:compileDebugKotlin --stacktrace
-      - name: Commit Item 2
+      - name: Commit Item 3
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt
-          git commit -m "fix: confirm conversation deletion"
+          git commit -m "fix: meet chat icon touch target minimums"
           git push origin HEAD
