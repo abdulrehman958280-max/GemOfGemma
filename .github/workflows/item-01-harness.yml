@@ -23,55 +23,47 @@ jobs:
           root = Path('ui/src/main')
           files = sorted((root / 'java/com/gemofgemma/ui/chat').glob('*.kt'))
           resource_file = root / 'res/values/strings.xml'
-          existing = {}
+          mapping = {}
           if resource_file.exists():
-              for name, value in re.findall(r'<string name="([^"]+)">(.*?)</string>', resource_file.read_text(), re.S): existing[name] = html.unescape(value)
+              for name, value in re.findall(r'<string name="([^"]+)">(.*?)</string>', resource_file.read_text(), re.S): mapping[name] = html.unescape(value)
           def slug(value):
               s = re.sub(r'[^a-z0-9]+', '_', value.lower()).strip('_')[:45]
               return 'chat_' + (s or 'text')
-          mapping = dict(existing)
-          targets = ('text =', 'Text(', 'contentDescription =', 'label =', 'title =', 'description =', 'message =', 'placeholder =', 'supportingText =', 'showSnackbar(', 'Triple(')
+          targets = ('text =','Text(','contentDescription =','label =','title =','description =','message =','placeholder =','supportingText =','showSnackbar(','Triple(')
           string_re = re.compile(r'"(?:\\.|[^"\\])*"')
-          replacements = 0
+          count = [0]
           for path in files:
               lines = path.read_text().splitlines(keepends=True)
-              changed = False
               out = []
+              changed = False
               for line in lines:
-                  if not any(t in line for t in targets):
-                      out.append(line); continue
+                  if not any(t in line for t in targets): out.append(line); continue
                   def repl(m):
-                      nonlocal replacements, changed
                       raw = m.group(0)
                       try: value = json.loads(raw)
                       except Exception: return raw
                       if not value or '${' in value or value.startswith('android.permission.') or '://' in value or '/' in value:
                           return raw
-                      if value in {'UTF-8','GET','POST','OK','Error','Success'}:
-                          return raw
-                      name = slug(value)
-                      base = name; i = 2
+                      name = slug(value); base = name; i = 2
                       while name in mapping and mapping[name] != value:
                           name = f'{base}_{i}'; i += 1
-                      mapping[name] = value
-                      replacements += 1; changed = True
+                      mapping[name] = value; count[0] += 1
                       return f'stringResource(R.string.{name})'
                   new_line = string_re.sub(repl, line)
+                  changed |= new_line != line
                   out.append(new_line)
               if changed:
                   text = ''.join(out)
                   if 'stringResource(' in text and 'import androidx.compose.ui.res.stringResource' not in text:
                       text = text.replace('import ', 'import androidx.compose.ui.res.stringResource\nimport ', 1)
                   path.write_text(text)
-          entries = sorted(mapping.items())
+          if count[0] == 0: raise SystemExit('Item 13: no Chat UI strings were migrated')
           xml = ['<?xml version="1.0" encoding="utf-8"?>','<resources>']
-          for name, value in entries:
-              xml.append(f'    <string name="{name}">{html.escape(value, quote=False)}</string>')
+          for name, value in sorted(mapping.items()): xml.append(f'    <string name="{name}">{html.escape(value, quote=False)}</string>')
           xml.append('</resources>')
           resource_file.parent.mkdir(parents=True, exist_ok=True)
           resource_file.write_text('\n'.join(xml) + '\n')
-          if replacements == 0: raise SystemExit('Item 13: no ChatScreen UI strings were migrated')
-          print(f'Migrated {replacements} Chat UI literals into strings.xml')
+          print(f'Migrated {count[0]} Chat UI literals')
       - name: Re-read and compile ChatScreen
         run: ./gradlew --no-configuration-cache :ui:compileDebugKotlin --stacktrace
       - name: Commit Item 13 chat strings
