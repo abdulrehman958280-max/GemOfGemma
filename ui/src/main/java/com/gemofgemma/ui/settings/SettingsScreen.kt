@@ -9,8 +9,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -30,6 +32,7 @@ fun SettingsScreen(
 ) {
     val enabledTools by settingsViewModel.enabledTools.collectAsStateWithLifecycle()
     val showInferenceStats by settingsViewModel.showInferenceStats.collectAsStateWithLifecycle()
+    val haptics = LocalHapticFeedback.current
     val activeModelId by viewModel.activeModelId.collectAsStateWithLifecycle()
     val isDownloading by viewModel.isDownloading.collectAsStateWithLifecycle()
     val downloadProgress by viewModel.downloadProgress.collectAsStateWithLifecycle()
@@ -75,7 +78,10 @@ fun SettingsScreen(
                 ) {
                     Column {
                         tools.forEachIndexed { index, tool ->
-                            ToolListItem(tool, enabledTools.contains(tool.id)) { settingsViewModel.toggleTool(tool, it) }
+                            ToolListItem(tool, enabledTools.contains(tool.id)) { enabled ->
+                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                settingsViewModel.toggleTool(tool, enabled)
+                            }
                             if (index < tools.size - 1) HorizontalDivider(Modifier.padding(horizontal = 16.dp))
                         }
                     }

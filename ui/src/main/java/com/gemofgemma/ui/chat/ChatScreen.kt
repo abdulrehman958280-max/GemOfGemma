@@ -97,9 +97,11 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -134,6 +136,7 @@ fun ChatScreen(
     val pendingConfirmation by viewModel.pendingConfirmation.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val haptics = LocalHapticFeedback.current
 
     // Gallery picker
     val galleryLauncher = rememberLauncherForActivityResult(
@@ -210,7 +213,7 @@ fun ChatScreen(
             title = { Text("Confirm action") },
             text = { Text(pending.actionDescription) },
             confirmButton = {
-                TextButton(onClick = viewModel::confirmPendingAction) { Text("Confirm") }
+                TextButton(onClick = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); viewModel.confirmPendingAction() }) { Text("Confirm") }
             },
             dismissButton = {
                 TextButton(onClick = viewModel::cancelPendingAction) { Text("Cancel") }
@@ -500,6 +503,7 @@ fun ChatScreen(
                     input = uiState.currentInput,
                     onInputChanged = viewModel::onInputChanged,
                     onSend = {
+                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         keyboardController?.hide()
                         viewModel.sendMessage()
                     },
@@ -575,7 +579,10 @@ fun ChatScreen(
     if (uiState.showToolPicker) {
         ToolPickerBottomSheet(
             enabledTools = uiState.enabledTools,
-            onToggleTool = viewModel::toggleTool,
+            onToggleTool = { toolId, enabled ->
+                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                viewModel.toggleTool(toolId, enabled)
+            },
             onEnableAll = { viewModel.setAllToolsEnabled(true) },
             onDisableAll = { viewModel.setAllToolsEnabled(false) },
             onDismiss = viewModel::hideToolPicker
@@ -1426,6 +1433,7 @@ private fun ConversationHistorySheet(
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val haptics = LocalHapticFeedback.current
     var pendingDelete by remember { mutableStateOf<com.gemofgemma.core.data.ConversationEntity?>(null) }
 
     ModalBottomSheet(
@@ -1516,6 +1524,7 @@ private fun ConversationHistorySheet(
                     confirmButton = {
                         TextButton(
                             onClick = {
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                 pendingDelete = null
                                 onDelete(conversation.id)
                             }
