@@ -1,5 +1,7 @@
 package com.gemofgemma.ui.chat
 
+import com.gemofgemma.ui.R
+import androidx.compose.ui.res.stringResource
 import android.graphics.BitmapFactory
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -220,13 +222,13 @@ fun ChatScreen(
     pendingConfirmation?.let { pending ->
         AlertDialog(
             onDismissRequest = viewModel::cancelPendingAction,
-            title = { Text("Confirm action") },
+            title = { Text(stringResource(R.string.chat_confirm_action)) },
             text = { Text(pending.actionDescription) },
             confirmButton = {
-                TextButton(onClick = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); viewModel.confirmPendingAction() }) { Text("Confirm") }
+                TextButton(onClick = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); viewModel.confirmPendingAction() }) { Text(stringResource(R.string.chat_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = viewModel::cancelPendingAction) { Text("Cancel") }
+                TextButton(onClick = viewModel::cancelPendingAction) { Text(stringResource(R.string.chat_cancel)) }
             }
         )
     }
@@ -285,7 +287,7 @@ fun ChatScreen(
                         )
                     }
                     TextButton(onClick = onNavigateToSettings) {
-                        Text("Settings")
+                        Text(stringResource(R.string.chat_settings))
                     }
                 }
             }
@@ -305,14 +307,14 @@ fun ChatScreen(
                     AnimatedGemIcon(size = 72.dp)
                     Spacer(modifier = Modifier.height(24.dp))
                     Text(
-                        text = "Ask me anything",
+                        text = stringResource(R.string.chat_ask_me_anything),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Powered by Gemma 4 — running entirely on your device",
+                        text = stringResource(R.string.chat_powered_by_gemma_4_running_entirely_on_your_d),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant      
                     )
@@ -331,7 +333,7 @@ fun ChatScreen(
                         )
                         suggestions.forEach { suggestion ->
                             FeatureChip(
-                                label = "\"$suggestion\"",
+                                label = stringResource(R.string.chat_suggestion),
                                 onClick = {
                                     viewModel.onInputChanged(suggestion)
                                     keyboardController?.hide()
@@ -483,7 +485,7 @@ fun ChatScreen(
                     onDismissRequest = { viewModel.toggleAttachmentOptions() }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Camera", fontWeight = FontWeight.Medium) },
+                        text = { Text(stringResource(R.string.chat_camera), fontWeight = FontWeight.Medium) },
                         onClick = {
                             viewModel.toggleAttachmentOptions()
                             onNavigateToCapture()
@@ -497,7 +499,7 @@ fun ChatScreen(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Gallery", fontWeight = FontWeight.Medium) },
+                        text = { Text(stringResource(R.string.chat_gallery), fontWeight = FontWeight.Medium) },
                         onClick = {
                             viewModel.toggleAttachmentOptions()
                             galleryLauncher.launch(
@@ -615,7 +617,7 @@ private fun ConversationHistorySheet(
                 .padding(bottom = 24.dp)
         ) {
             Text(
-                text = "Conversations",
+                text = stringResource(R.string.chat_conversations),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -623,7 +625,7 @@ private fun ConversationHistorySheet(
 
             if (conversations.isEmpty()) {
                 Text(
-                    text = "No conversations yet",
+                    text = stringResource(R.string.chat_no_conversations_yet),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
@@ -667,7 +669,7 @@ private fun ConversationHistorySheet(
                                     ) {
                                         Icon(
                                             Icons.Default.Close,
-                                            contentDescription = "Delete",
+                                            contentDescription = stringResource(R.string.chat_delete),
                                             modifier = Modifier.size(16.dp),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -688,8 +690,8 @@ private fun ConversationHistorySheet(
             pendingDelete?.let { conversation ->
                 AlertDialog(
                     onDismissRequest = { pendingDelete = null },
-                    title = { Text("Delete conversation?") },
-                    text = { Text("Delete this conversation? This can't be undone.") },
+                    title = { Text(stringResource(R.string.chat_delete_conversation)) },
+                    text = { Text(stringResource(R.string.chat_delete_this_conversation_this_can_t_be_undone)) },
                     confirmButton = {
                         TextButton(
                             onClick = {
@@ -697,10 +699,10 @@ private fun ConversationHistorySheet(
                                 pendingDelete = null
                                 onDelete(conversation.id)
                             }
-                        ) { Text("Delete") }
+                        ) { Text(stringResource(R.string.chat_delete)) }
                     },
                     dismissButton = {
-                        TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
+                        TextButton(onClick = { pendingDelete = null }) { Text(stringResource(R.string.chat_cancel)) }
                     }
                 )
             }

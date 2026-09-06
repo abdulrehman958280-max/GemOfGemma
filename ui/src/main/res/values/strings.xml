@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_ask_me_anything">Ask me anything</string>
+    <string name="chat_camera">Camera</string>
+    <string name="chat_cancel">Cancel</string>
+    <string name="chat_confirm">Confirm</string>
+    <string name="chat_confirm_action">Confirm action</string>
+    <string name="chat_conversations">Conversations</string>
+    <string name="chat_delete">Delete</string>
+    <string name="chat_delete_conversation">Delete conversation?</string>
+    <string name="chat_delete_this_conversation_this_can_t_be_undone">Delete this conversation? This can't be undone.</string>
+    <string name="chat_gallery">Gallery</string>
+    <string name="chat_no_conversations_yet">No conversations yet</string>
+    <string name="chat_powered_by_gemma_4_running_entirely_on_your_d">Powered by Gemma 4 — running entirely on your device</string>
+    <string name="chat_settings">Settings</string>
+    <string name="chat_suggestion">"$suggestion"</string>
+</resources>
