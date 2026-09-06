@@ -1,0 +1,120 @@
+name: Item 01 verification harness
+on:
+  push:
+    paths:
+      - .github/workflows/item-01-harness.yml
+permissions:
+  contents: write
+jobs:
+  item-01:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Apply Item 1
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def read(p): return Path(p).read_text()
+          def write(p, s): Path(p).write_text(s)
+
+          core = Path('core/src/main/java/com/gemofgemma/core/model/ParsedAction.kt')
+          core.parent.mkdir(parents=True, exist_ok=True)
+          if not core.exists():
+              write(core, '''package com.gemofgemma.core.model\n\n/** Parsed function/tool call produced by the AI model. */\ndata class ParsedAction(\n    val functionName: String,\n    val parameters: Map<String, Any>,\n    val rawOutput: String = ""\n)\n''')
+
+          actions_model = Path('actions/src/main/java/com/gemofgemma/actions/model/ParsedAction.kt')
+          write(actions_model, '''package com.gemofgemma.actions.model\n\n/** Backwards-compatible alias for the canonical core ParsedAction model. */\ntypealias ParsedAction = com.gemofgemma.core.model.ParsedAction\n''')
+
+          ai_response = Path('core/src/main/java/com/gemofgemma/core/model/AiResponse.kt')
+          s = read(ai_response)
+          old = 'data class NeedsConfirmation(val actionDescription: String, val onConfirm: () -> Unit) : ActionResult()'
+          new = '''data class NeedsConfirmation(\n        val actionDescription: String,\n        val action: ParsedAction\n    ) : ActionResult()'''
+          if old not in s:
+              raise SystemExit('Item 1: expected ActionResult.NeedsConfirmation declaration not found')
+          write(ai_response, s.replace(old, new))
+
+          dispatcher = Path('actions/src/main/java/com/gemofgemma/actions/ActionDispatcher.kt')
+          s = read(dispatcher)
+          old = '''ActionResult.NeedsConfirmation(\n                    actionDescription = validation.reason,\n                    onConfirm = { /* Caller should use dispatchConfirmed() instead */ }\n                )'''
+          new = '''ActionResult.NeedsConfirmation(\n                    actionDescription = validation.reason,\n                    action = action\n                )'''
+          if old not in s:
+              raise SystemExit('Item 1: expected no-op confirmation branch not found')
+          write(dispatcher, s.replace(old, new))
+
+          gradle = Path('ui/build.gradle.kts')
+          s = read(gradle)
+          marker = '    implementation(project(":core"))\n'
+          if 'implementation(project(":actions"))' not in s:
+              if marker not in s:
+                  raise SystemExit('Item 1: ui dependency insertion marker not found')
+              s = s.replace(marker, marker + '    implementation(project(":actions"))\n', 1)
+          write(gradle, s)
+
+          vm = Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatViewModel.kt')
+          s = read(vm)
+          s = s.replace('import com.gemofgemma.core.AiProcessor\n', 'import com.gemofgemma.actions.ActionDispatcher\nimport com.gemofgemma.core.AiProcessor\n')
+          s = s.replace('import com.gemofgemma.core.model.AiRequest\n', 'import com.gemofgemma.core.model.AiRequest\nimport com.gemofgemma.core.model.ActionResult\n')
+          constructor_old = '''    private val toolPreferencesRepository: ToolPreferencesRepository,\n    private val chatRepository: ChatRepository\n) : ViewModel() {'''
+          constructor_new = '''    private val toolPreferencesRepository: ToolPreferencesRepository,\n    private val chatRepository: ChatRepository,\n    private val actionDispatcher: ActionDispatcher\n) : ViewModel() {'''
+          if constructor_old not in s:
+              raise SystemExit('Item 1: ChatViewModel constructor marker not found')
+          s = s.replace(constructor_old, constructor_new, 1)
+          state_marker = '''    private val _uiState = MutableStateFlow(ChatUiState())\n    val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()\n'''
+          state_new = state_marker + '''\n    private val _pendingConfirmation = MutableStateFlow<ActionResult.NeedsConfirmation?>(null)\n    val pendingConfirmation: StateFlow<ActionResult.NeedsConfirmation?> = _pendingConfirmation.asStateFlow()\n'''
+          if state_marker not in s:
+              raise SystemExit('Item 1: ChatViewModel state marker not found')
+          s = s.replace(state_marker, state_new, 1)
+          branch_old = '''                    is com.gemofgemma.core.model.ActionResult.NeedsConfirmation ->\n                        "Confirm action: ${result.actionDescription}"'''
+          branch_new = '''                    is com.gemofgemma.core.model.ActionResult.NeedsConfirmation -> {\n                        _pendingConfirmation.value = result\n                        "Confirm action: ${result.actionDescription}"\n                    }'''
+          if branch_old not in s:
+              raise SystemExit('Item 1: NeedsConfirmation rendering branch not found')
+          s = s.replace(branch_old, branch_new, 1)
+          insertion_marker = '    fun toggleRecording() {'
+          methods = '''    fun confirmPendingAction() {\n        val pending = _pendingConfirmation.value ?: return\n        _pendingConfirmation.value = null\n        viewModelScope.launch {\n            val result = try {\n                actionDispatcher.dispatchConfirmed(pending.action)\n            } catch (e: Exception) {\n                ActionResult.Error("Confirmed action failed: ${e.message}", e)\n            }\n            val message = buildAssistantMessage(\n                AiResponse.ActionResponse(result),\n                pendingImage = null\n            )\n            _uiState.update { it.copy(messages = it.messages + message) }\n            persistAssistantMessage(message)\n        }\n    }\n\n    fun cancelPendingAction() {\n        if (_pendingConfirmation.value == null) return\n        _pendingConfirmation.value = null\n        val message = ChatMessage(\n            id = UUID.randomUUID().toString(),\n            role = ChatMessage.Role.ASSISTANT,\n            content = "Cancelled",\n            messageType = ChatMessage.MessageType.ACTION\n        )\n        _uiState.update { it.copy(messages = it.messages + message) }\n        persistAssistantMessage(message)\n    }\n\n'''
+          if insertion_marker not in s:
+              raise SystemExit('Item 1: ChatViewModel method insertion marker not found')
+          s = s.replace(insertion_marker, methods + insertion_marker, 1)
+          write(vm, s)
+
+          screen = Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt')
+          s = read(screen)
+          s = s.replace('import androidx.compose.material3.CircularProgressIndicator\n', 'import androidx.compose.material3.AlertDialog\nimport androidx.compose.material3.CircularProgressIndicator\n')
+          if 'import androidx.compose.material3.TextButton\n' not in s:
+              s = s.replace('import androidx.compose.material3.Surface\n', 'import androidx.compose.material3.Surface\nimport androidx.compose.material3.TextButton\n', 1)
+          state_marker = '    val uiState by viewModel.uiState.collectAsStateWithLifecycle()\n'
+          if 'val pendingConfirmation by viewModel.pendingConfirmation.collectAsStateWithLifecycle()' not in s:
+              if state_marker not in s:
+                  raise SystemExit('Item 1: ChatScreen state marker not found')
+              s = s.replace(state_marker, state_marker + '    val pendingConfirmation by viewModel.pendingConfirmation.collectAsStateWithLifecycle()\n', 1)
+          column_marker = '''    Column(\n        modifier = Modifier\n            .fillMaxSize()'''
+          dialog = '''    pendingConfirmation?.let { pending ->\n        AlertDialog(\n            onDismissRequest = viewModel::cancelPendingAction,\n            title = { Text("Confirm action") },\n            text = { Text(pending.actionDescription) },\n            confirmButton = {\n                TextButton(onClick = viewModel::confirmPendingAction) {\n                    Text("Confirm")\n                }\n            },\n            dismissButton = {\n                TextButton(onClick = viewModel::cancelPendingAction) {\n                    Text("Cancel")\n                }\n            }\n        )\n    }\n\n'''
+          if 'title = { Text("Confirm action") }' not in s:
+              if column_marker not in s:
+                  raise SystemExit('Item 1: ChatScreen Column insertion marker not found')
+              s = s.replace(column_marker, dialog + column_marker, 1)
+          write(screen, s)
+
+      - name: Re-read Item 1 changes
+        run: |
+          grep -n "NeedsConfirmation\|dispatchConfirmed" core/src/main/java/com/gemofgemma/core/model/AiResponse.kt actions/src/main/java/com/gemofgemma/actions/ActionDispatcher.kt
+          grep -n "pendingConfirmation\|confirmPendingAction\|cancelPendingAction" ui/src/main/java/com/gemofgemma/ui/chat/ChatViewModel.kt ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt
+          grep -n 'implementation(project(":actions"))' ui/build.gradle.kts
+      - name: Compile core
+        run: ./gradlew :core:compileDebugKotlin --stacktrace
+      - name: Compile actions
+        run: ./gradlew :actions:compileDebugKotlin --stacktrace
+      - name: Compile ui
+        run: ./gradlew :ui:compileDebugKotlin --stacktrace
+      - name: Commit Item 1
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add core actions ui
+          git commit -m "fix: restore action confirmation flow"
+          git push origin HEAD
