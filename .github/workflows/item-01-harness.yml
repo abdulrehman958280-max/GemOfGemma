@@ -21,22 +21,25 @@ jobs:
           from pathlib import Path
           p = Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt')
           s = p.read_text()
+          start_marker = '// ── Conversation History Bottom Sheet'
+          if start_marker not in s: raise SystemExit('Item 2: conversation history section not found')
+          head, section = s.split(start_marker, 1)
           marker = '    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)\n'
-          if 'var pendingDelete by remember { mutableStateOf<com.gemofgemma.core.data.ConversationEntity?>(null) }' not in s:
-              if marker not in s: raise SystemExit('Item 2: conversation sheet state marker not found')
-              s = s.replace(marker, marker + '    var pendingDelete by remember { mutableStateOf<com.gemofgemma.core.data.ConversationEntity?>(null) }\n', 1)
+          if 'var pendingDelete by remember { mutableStateOf<com.gemofgemma.core.data.ConversationEntity?>(null) }' not in section:
+              if marker not in section: raise SystemExit('Item 2: conversation sheet state marker not found')
+              section = section.replace(marker, marker + '    var pendingDelete by remember { mutableStateOf<com.gemofgemma.core.data.ConversationEntity?>(null) }\n', 1)
           old_click = 'onClick = { onDelete(conv.id) },'
           new_click = 'onClick = { pendingDelete = conv },'
-          if old_click in s:
-              s = s.replace(old_click, new_click, 1)
-          elif new_click not in s:
+          if old_click in section:
+              section = section.replace(old_click, new_click, 1)
+          elif new_click not in section:
               raise SystemExit('Item 2: delete button callback not found')
-          tail = '''                }\n            }\n        }\n    }\n}'''
-          dialog_tail = '''                }\n            }\n            pendingDelete?.let { conversation ->\n                AlertDialog(\n                    onDismissRequest = { pendingDelete = null },\n                    title = { Text("Delete conversation?") },\n                    text = { Text("Delete this conversation? This can't be undone.") },\n                    confirmButton = {\n                        TextButton(\n                            onClick = {\n                                pendingDelete = null\n                                onDelete(conversation.id)\n                            }\n                        ) { Text("Delete") }\n                    },\n                    dismissButton = {\n                        TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }\n                    }\n                )\n            }\n        }\n    }\n}'''
-          if 'title = { Text("Delete conversation?") }' not in s:
-              if tail not in s: raise SystemExit('Item 2: conversation sheet tail not found')
-              s = s.replace(tail, dialog_tail, 1)
-          p.write_text(s)
+          tail = '''                }\n            }\n        }\n    }\n}\n'''
+          dialog_tail = '''                }\n            }\n            pendingDelete?.let { conversation ->\n                AlertDialog(\n                    onDismissRequest = { pendingDelete = null },\n                    title = { Text("Delete conversation?") },\n                    text = { Text("Delete this conversation? This can't be undone.") },\n                    confirmButton = {\n                        TextButton(\n                            onClick = {\n                                pendingDelete = null\n                                onDelete(conversation.id)\n                            }\n                        ) { Text("Delete") }\n                    },\n                    dismissButton = {\n                        TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }\n                    }\n                )\n            }\n        }\n    }\n}\n'''
+          if 'title = { Text("Delete conversation?") }' not in section:
+              if tail not in section: raise SystemExit('Item 2: conversation sheet tail not found')
+              section = section.replace(tail, dialog_tail, 1)
+          p.write_text(head + start_marker + section)
       - name: Re-read Item 2 change
         run: |
           grep -n "pendingDelete\|Delete conversation\|onDelete(conversation.id)" ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt
