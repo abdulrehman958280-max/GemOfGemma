@@ -1,4 +1,6 @@
-# Silent & Autonomous Execution on Android with Gemma 4
+> **Note:** this is background research; nothing in this document is implemented as an app feature.
+
+# Android Automation API Research — Gemma 4
 
 > **Research Date:** April 17, 2026
 > **Author:** Elaine (ML Engineer)
