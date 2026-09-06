@@ -1,4 +1,4 @@
-name: Item 12 verification
+name: Item 13 chat strings verification
 on:
   push:
     paths:
@@ -15,79 +15,70 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
-      - name: Apply Item 12
+      - name: Apply Item 13 to ChatScreen
         shell: python
         run: |
           from pathlib import Path
-          path = Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt')
-          original = path.read_text()
-          def extract_function(source, name):
-              marker = f'private fun {name}'
-              marker_pos = source.find(marker)
-              if marker_pos < 0: raise SystemExit(f'Item 12: function {name} not found')
-              line_start = source.rfind('\n', 0, marker_pos) + 1
-              annotation_start = source.rfind('@Composable', 0, marker_pos)
-              optin_start = source.rfind('@OptIn', 0, marker_pos)
-              start = annotation_start if annotation_start >= line_start - 160 else line_start
-              if optin_start >= line_start - 160: start = optin_start
-              brace = source.find('{', marker_pos)
-              depth = 0
-              end = None
-              for i in range(brace, len(source)):
-                  if source[i] == '{': depth += 1
-                  elif source[i] == '}':
-                      depth -= 1
-                      if depth == 0:
-                          end = i + 1
-                          break
-              if end is None: raise SystemExit(f'Item 12: unterminated function {name}')
-              return start, end, source[start:end].strip().replace('private fun ', 'fun ', 1)
-          groups = {
-              'ChatBubble.kt': ['ChatBubble','InferenceStatsChip','TextContent','ImageQueryContent','DetectionContent','OcrContent','ActionContent','ErrorContent','ThinkingSection'],
-              'ChatInputBar.kt': ['ChatInputBar','PendingImagePreview'],
-              'ToolPickerSheet.kt': ['ToolPickerBottomSheet','ToolPickerItem']
-          }
-          ranges = []
-          extracted = {}
-          for filename, names in groups.items():
-              blocks = []
-              for name in names:
-                  start, end, block = extract_function(original, name)
-                  ranges.append((start, end)); blocks.append(block)
-              extracted[filename] = blocks
-          text = original
-          for start, end in sorted(ranges, reverse=True): text = text[:start] + text[end:]
-          marker = '@Composable\nfun ChatScreen'
-          head, tail = text.split(marker, 1)
-          tail = tail.replace('@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)\n', '').replace('@OptIn(ExperimentalPermissionsApi::class)\n', '')
-          text = head + marker + tail
-          start_marker = '        // ── Minimal header'
-          end_marker = '        // ── Model offline banner'
-          start = text.find(start_marker); end = text.find(end_marker, start)
-          if start < 0 or end < 0: raise SystemExit('Item 12: inline ChatTopBar block not found')
-          replacement = '''        ChatTopBar(\n            onHistoryClick = viewModel::toggleConversationHistory,\n            onNewChat = viewModel::newChat,\n            onSettingsClick = onNavigateToSettings\n        )\n'''
-          path.write_text(text[:start] + replacement + text[end:])
-          headers = {
-              'ChatBubble.kt': '''package com.gemofgemma.ui.chat\n\nimport android.graphics.BitmapFactory\nimport androidx.compose.animation.*\nimport androidx.compose.animation.core.Spring\nimport androidx.compose.animation.core.spring\nimport androidx.compose.foundation.Image\nimport androidx.compose.foundation.clickable\nimport androidx.compose.foundation.layout.*\nimport androidx.compose.foundation.shape.RoundedCornerShape\nimport androidx.compose.foundation.text.selection.SelectionContainer\nimport androidx.compose.material.icons.Icons\nimport androidx.compose.material.icons.filled.ContentCopy\nimport androidx.compose.material.icons.filled.SmartToy\nimport androidx.compose.material3.*\nimport androidx.compose.runtime.*\nimport androidx.compose.ui.Alignment\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.draw.clip\nimport androidx.compose.ui.graphics.asImageBitmap\nimport androidx.compose.ui.layout.ContentScale\nimport androidx.compose.ui.platform.LocalClipboardManager\nimport androidx.compose.ui.platform.LocalContext\nimport androidx.compose.ui.text.AnnotatedString\nimport androidx.compose.ui.text.font.FontWeight\nimport androidx.compose.ui.text.style.TextOverflow\nimport androidx.compose.ui.unit.dp\nimport com.gemofgemma.core.model.ChatMessage\nimport com.gemofgemma.ui.camera.BoundingBoxOverlay\nimport com.gemofgemma.ui.components.ThinkingIndicator\n\n''',
-              'ChatInputBar.kt': '''package com.gemofgemma.ui.chat\n\nimport android.graphics.BitmapFactory\nimport androidx.compose.animation.AnimatedVisibility\nimport androidx.compose.animation.Crossfade\nimport androidx.compose.animation.core.tween\nimport androidx.compose.foundation.Image\nimport androidx.compose.foundation.layout.*\nimport androidx.compose.foundation.shape.CircleShape\nimport androidx.compose.foundation.shape.RoundedCornerShape\nimport androidx.compose.material.icons.Icons\nimport androidx.compose.material.icons.automirrored.filled.Send\nimport androidx.compose.material.icons.filled.Add\nimport androidx.compose.material.icons.filled.Close\nimport androidx.compose.material.icons.filled.Mic\nimport androidx.compose.material.icons.filled.MicOff\nimport androidx.compose.material.icons.filled.Stop\nimport androidx.compose.material3.*\nimport androidx.compose.runtime.*\nimport androidx.compose.ui.Alignment\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.draw.clip\nimport androidx.compose.ui.graphics.Color\nimport androidx.compose.ui.graphics.asImageBitmap\nimport androidx.compose.ui.layout.ContentScale\nimport androidx.compose.ui.unit.dp\n\n''',
-              'ToolPickerSheet.kt': '''package com.gemofgemma.ui.chat\n\nimport androidx.compose.foundation.layout.*\nimport androidx.compose.foundation.lazy.LazyColumn\nimport androidx.compose.foundation.shape.RoundedCornerShape\nimport androidx.compose.material.icons.Icons\nimport androidx.compose.material.icons.filled.Close\nimport androidx.compose.material.icons.filled.Search\nimport androidx.compose.material3.*\nimport androidx.compose.runtime.*\nimport androidx.compose.ui.Alignment\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.graphics.Color\nimport androidx.compose.ui.text.font.FontWeight\nimport androidx.compose.ui.text.style.TextOverflow\nimport androidx.compose.ui.unit.dp\nimport com.gemofgemma.core.model.ToolCategory\nimport com.gemofgemma.core.model.ToolDefinition\nimport com.google.accompanist.permissions.ExperimentalPermissionsApi\nimport com.google.accompanist.permissions.isGranted\nimport com.google.accompanist.permissions.rememberPermissionState\n\n'''
-          }
-          for filename, blocks in extracted.items():
-              Path('ui/src/main/java/com/gemofgemma/ui/chat/' + filename).write_text(headers[filename] + '\n\n'.join(blocks) + '\n')
-          Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatTopBar.kt').write_text('''package com.gemofgemma.ui.chat\n\nimport androidx.compose.foundation.layout.*\nimport androidx.compose.material.icons.Icons\nimport androidx.compose.material.icons.filled.Add\nimport androidx.compose.material.icons.filled.Forum\nimport androidx.compose.material.icons.filled.Settings\nimport androidx.compose.material.icons.filled.SmartToy\nimport androidx.compose.material3.*\nimport androidx.compose.runtime.Composable\nimport androidx.compose.ui.Alignment\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.text.font.FontWeight\nimport androidx.compose.ui.unit.dp\n\n@Composable\nfun ChatTopBar(onHistoryClick: () -> Unit, onNewChat: () -> Unit, onSettingsClick: () -> Unit) {\n    Surface(color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f), tonalElevation = 2.dp) {\n        Row(modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 8.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {\n            Icon(Icons.Default.SmartToy, contentDescription = "OmniCode", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))\n            Spacer(modifier = Modifier.width(8.dp))\n            Text("OmniCode", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)\n            Spacer(modifier = Modifier.weight(1f))\n            IconButton(onClick = onHistoryClick, modifier = Modifier.size(48.dp)) { Icon(Icons.Default.Forum, contentDescription = "Chat History", tint = MaterialTheme.colorScheme.onSurfaceVariant) }\n            IconButton(onClick = onNewChat, modifier = Modifier.size(48.dp)) { Icon(Icons.Default.Add, contentDescription = "New Chat", tint = MaterialTheme.colorScheme.primary) }\n            IconButton(onClick = onSettingsClick, modifier = Modifier.size(48.dp)) { Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant) }\n        }\n    }\n}\n''')
-      - name: Re-read extracted files
-        shell: bash
-        run: |
-          set -euo pipefail
-          for f in ChatBubble.kt ChatInputBar.kt ToolPickerSheet.kt ChatTopBar.kt; do test -s "ui/src/main/java/com/gemofgemma/ui/chat/$f"; done
-          grep -n 'ChatTopBar' ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt
-      - name: Compile affected module
+          import re, html, json
+          root = Path('ui/src/main')
+          files = sorted((root / 'java/com/gemofgemma/ui/chat').glob('*.kt'))
+          resource_file = root / 'res/values/strings.xml'
+          existing = {}
+          if resource_file.exists():
+              for name, value in re.findall(r'<string name="([^"]+)">(.*?)</string>', resource_file.read_text(), re.S): existing[name] = html.unescape(value)
+          def slug(value):
+              s = re.sub(r'[^a-z0-9]+', '_', value.lower()).strip('_')[:45]
+              return 'chat_' + (s or 'text')
+          mapping = dict(existing)
+          targets = ('text =', 'Text(', 'contentDescription =', 'label =', 'title =', 'description =', 'message =', 'placeholder =', 'supportingText =', 'showSnackbar(', 'Triple(')
+          string_re = re.compile(r'"(?:\\.|[^"\\])*"')
+          replacements = 0
+          for path in files:
+              lines = path.read_text().splitlines(keepends=True)
+              changed = False
+              out = []
+              for line in lines:
+                  if not any(t in line for t in targets):
+                      out.append(line); continue
+                  def repl(m):
+                      nonlocal replacements, changed
+                      raw = m.group(0)
+                      try: value = json.loads(raw)
+                      except Exception: return raw
+                      if not value or '${' in value or value.startswith('android.permission.') or '://' in value or '/' in value:
+                          return raw
+                      if value in {'UTF-8','GET','POST','OK','Error','Success'}:
+                          return raw
+                      name = slug(value)
+                      base = name; i = 2
+                      while name in mapping and mapping[name] != value:
+                          name = f'{base}_{i}'; i += 1
+                      mapping[name] = value
+                      replacements += 1; changed = True
+                      return f'stringResource(R.string.{name})'
+                  new_line = string_re.sub(repl, line)
+                  out.append(new_line)
+              if changed:
+                  text = ''.join(out)
+                  if 'stringResource(' in text and 'import androidx.compose.ui.res.stringResource' not in text:
+                      text = text.replace('import ', 'import androidx.compose.ui.res.stringResource\nimport ', 1)
+                  path.write_text(text)
+          entries = sorted(mapping.items())
+          xml = ['<?xml version="1.0" encoding="utf-8"?>','<resources>']
+          for name, value in entries:
+              xml.append(f'    <string name="{name}">{html.escape(value, quote=False)}</string>')
+          xml.append('</resources>')
+          resource_file.parent.mkdir(parents=True, exist_ok=True)
+          resource_file.write_text('\n'.join(xml) + '\n')
+          if replacements == 0: raise SystemExit('Item 13: no ChatScreen UI strings were migrated')
+          print(f'Migrated {replacements} Chat UI literals into strings.xml')
+      - name: Re-read and compile ChatScreen
         run: ./gradlew --no-configuration-cache :ui:compileDebugKotlin --stacktrace
-      - name: Commit Item 12
+      - name: Commit Item 13 chat strings
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt ui/src/main/java/com/gemofgemma/ui/chat/ChatBubble.kt ui/src/main/java/com/gemofgemma/ui/chat/ChatInputBar.kt ui/src/main/java/com/gemofgemma/ui/chat/ToolPickerSheet.kt ui/src/main/java/com/gemofgemma/ui/chat/ChatTopBar.kt
-          git commit -m "refactor: split chat screen composables"
+          git add ui/src/main/java/com/gemofgemma/ui/chat ui/src/main/res/values/strings.xml
+          git commit -m "refactor: externalize chat strings"
           git pull --rebase origin fix/sequential-14-item-polish
           git push origin HEAD:fix/sequential-14-item-polish
