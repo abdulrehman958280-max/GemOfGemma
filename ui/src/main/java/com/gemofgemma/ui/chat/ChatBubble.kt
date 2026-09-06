@@ -2,8 +2,6 @@ package com.gemofgemma.ui.chat
 
 import android.graphics.BitmapFactory
 import androidx.compose.animation.*
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -50,12 +48,7 @@ fun ChatBubble(message: ChatMessage, showInferenceStats: Boolean = true) {
         Surface(
             modifier = Modifier
                 .weight(0.85f, fill = false)
-                .animateContentSize(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioLowBouncy,
-                        stiffness = Spring.StiffnessMediumLow
-                    )
-                )
+                .animateContentSize()
                 .then(
                     if (!isUser) Modifier.clickable { showCopyButton = !showCopyButton }
                     else Modifier
@@ -374,12 +367,7 @@ fun ThinkingSection(
     ) {
         Column(
             modifier = Modifier
-                .animateContentSize(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioLowBouncy,
-                        stiffness = Spring.StiffnessMediumLow
-                    )
-                )
+                .animateContentSize()
         ) {
             // Header row — always visible
             Row(
