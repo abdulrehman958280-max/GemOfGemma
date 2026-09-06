@@ -1426,6 +1426,7 @@ private fun ConversationHistorySheet(
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var pendingDelete by remember { mutableStateOf<com.gemofgemma.core.data.ConversationEntity?>(null) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -1484,7 +1485,7 @@ private fun ConversationHistorySheet(
                             trailingContent = {
                                 if (!isCurrent) {
                                     IconButton(
-                                        onClick = { onDelete(conv.id) },
+                                        onClick = { pendingDelete = conv },
                                         modifier = Modifier.size(32.dp)
                                     ) {
                                         Icon(
@@ -1506,6 +1507,24 @@ private fun ConversationHistorySheet(
                         )
                     }
                 }
+            }
+            pendingDelete?.let { conversation ->
+                AlertDialog(
+                    onDismissRequest = { pendingDelete = null },
+                    title = { Text("Delete conversation?") },
+                    text = { Text("Delete this conversation? This can't be undone.") },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                pendingDelete = null
+                                onDelete(conversation.id)
+                            }
+                        ) { Text("Delete") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
+                    }
+                )
             }
         }
     }
