@@ -1,4 +1,4 @@
-name: Item 06 verification harness
+name: Item 07 verification harness
 on:
   push:
     paths:
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: write
 jobs:
-  item-06:
+  item-07:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,69 +15,66 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
-      - name: Apply Item 6
+      - name: Apply Item 7
         shell: python
         run: |
           from pathlib import Path
 
-          def fix_imports(s):
-              return s.replace('import androidx.compose.ui.hapticfeedback.LocalHapticFeedback\n', 'import androidx.compose.ui.platform.LocalHapticFeedback\n')
+          vm = Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatViewModel.kt')
+          s = vm.read_text()
+          s = s.replace('import kotlinx.coroutines.flow.MutableStateFlow\n', 'import kotlinx.coroutines.flow.MutableSharedFlow\nimport kotlinx.coroutines.flow.MutableStateFlow\n', 1)
+          s = s.replace('import kotlinx.coroutines.flow.StateFlow\n', 'import kotlinx.coroutines.flow.SharedFlow\nimport kotlinx.coroutines.flow.StateFlow\n', 1)
+          s = s.replace('import kotlinx.coroutines.flow.asStateFlow\n', 'import kotlinx.coroutines.flow.asSharedFlow\nimport kotlinx.coroutines.flow.asStateFlow\n', 1)
+          state_marker = '    val pendingConfirmation: StateFlow<ActionResult.NeedsConfirmation?> = _pendingConfirmation.asStateFlow()\n'
+          if 'val snackbarEvent: SharedFlow<String>' not in s:
+              if state_marker not in s: raise SystemExit('Item 7: pending confirmation state marker not found')
+              s = s.replace(state_marker, state_marker + '''\n    private val _snackbarEvent = MutableSharedFlow<String>(extraBufferCapacity = 1)\n    val snackbarEvent: SharedFlow<String> = _snackbarEvent.asSharedFlow()\n''', 1)
+          persist_old = '''    private fun persistAssistantMessage(message: ChatMessage) {\n        viewModelScope.launch(Dispatchers.IO) {\n            chatRepository.saveMessage(currentConversationId, message)\n        }\n    }'''
+          persist_new = '''    private fun persistAssistantMessage(message: ChatMessage) {\n        if (message.messageType == ChatMessage.MessageType.ERROR && message.content.isBlank()) return\n        viewModelScope.launch(Dispatchers.IO) {\n            chatRepository.saveMessage(currentConversationId, message)\n        }\n    }'''
+          if persist_old in s: s = s.replace(persist_old, persist_new, 1)
+          error_branch = '''                    is com.gemofgemma.core.model.ActionResult.Error -> "Action failed: ${result.message}"\n                    is com.gemofgemma.core.model.ActionResult.PermissionRequired ->\n                        "Permissions needed: ${result.permissions.joinToString()}"'''
+          error_replacement = '''                    is com.gemofgemma.core.model.ActionResult.Error -> {\n                        _snackbarEvent.tryEmit("Action failed: ${result.message}")\n                        return ChatMessage(\n                            id = UUID.randomUUID().toString(),\n                            role = ChatMessage.Role.ASSISTANT,\n                            content = "",\n                            messageType = ChatMessage.MessageType.ERROR\n                        )\n                    }\n                    is com.gemofgemma.core.model.ActionResult.PermissionRequired -> {\n                        _snackbarEvent.tryEmit("Permissions needed: ${result.permissions.joinToString()}")\n                        return ChatMessage(\n                            id = UUID.randomUUID().toString(),\n                            role = ChatMessage.Role.ASSISTANT,\n                            content = "",\n                            messageType = ChatMessage.MessageType.ERROR\n                        )\n                    }'''
+          if error_branch not in s:
+              if 'Action failed: ${result.message}' not in s: raise SystemExit('Item 7: action error branch not found')
+          else:
+              s = s.replace(error_branch, error_replacement, 1)
+          vm.write_text(s)
 
-          chat = Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt')
-          s = fix_imports(chat.read_text())
-          if 'import androidx.compose.ui.hapticfeedback.HapticFeedbackType' not in s:
-              s = s.replace('import androidx.compose.ui.graphics.asImageBitmap\n', 'import androidx.compose.ui.graphics.asImageBitmap\nimport androidx.compose.ui.hapticfeedback.HapticFeedbackType\n', 1)
-          if 'import androidx.compose.ui.platform.LocalHapticFeedback' not in s:
-              s = s.replace('import androidx.compose.ui.platform.LocalSoftwareKeyboardController\n', 'import androidx.compose.ui.platform.LocalHapticFeedback\nimport androidx.compose.ui.platform.LocalSoftwareKeyboardController\n', 1)
-          state_marker = '    val keyboardController = LocalSoftwareKeyboardController.current\n'
-          if 'val haptics = LocalHapticFeedback.current' not in s:
-              if state_marker not in s: raise SystemExit('Item 6: ChatScreen state marker not found')
-              s = s.replace(state_marker, state_marker + '    val haptics = LocalHapticFeedback.current\n', 1)
-          s = s.replace('TextButton(onClick = viewModel::confirmPendingAction) { Text("Confirm") }', 'TextButton(onClick = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); viewModel.confirmPendingAction() }) { Text("Confirm") }', 1)
-          send_old = '''                    onSend = {\n                        keyboardController?.hide()\n                        viewModel.sendMessage()\n                    },'''
-          send_new = '''                    onSend = {\n                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)\n                        keyboardController?.hide()\n                        viewModel.sendMessage()\n                    },'''
-          if send_old in s: s = s.replace(send_old, send_new, 1)
-          tool_call_old = '            onToggleTool = viewModel::toggleTool,'
-          tool_call_new = '            onToggleTool = { toolId, enabled ->\n                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)\n                viewModel.toggleTool(toolId, enabled)\n            },'
-          if tool_call_old in s: s = s.replace(tool_call_old, tool_call_new, 1)
-
-          history_marker = '// ── Conversation History Bottom Sheet'
-          if history_marker not in s: raise SystemExit('Item 6: conversation history section not found')
-          head, history = s.split(history_marker, 1)
-          accidental = '    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)\n    val haptics = LocalHapticFeedback.current\n'
-          head = head.replace(accidental, '    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)\n', 1)
-          sheet_marker = '    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)\n'
-          if '    val haptics = LocalHapticFeedback.current\n' not in history:
-              if sheet_marker not in history: raise SystemExit('Item 6: conversation sheet state marker not found')
-              history = history.replace(sheet_marker, sheet_marker + '    val haptics = LocalHapticFeedback.current\n', 1)
-          delete_old = '''                            onClick = {\n                                pendingDelete = null\n                                onDelete(conversation.id)\n                            }'''
-          delete_new = '''                            onClick = {\n                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)\n                                pendingDelete = null\n                                onDelete(conversation.id)\n                            }'''
-          if delete_old in history: history = history.replace(delete_old, delete_new, 1)
-          chat.write_text(head + history_marker + history)
-
-          settings = Path('ui/src/main/java/com/gemofgemma/ui/settings/SettingsScreen.kt')
-          s = fix_imports(settings.read_text())
-          if 'import androidx.compose.ui.hapticfeedback.HapticFeedbackType' not in s:
-              s = s.replace('import androidx.compose.ui.graphics.Color\n', 'import androidx.compose.ui.graphics.Color\nimport androidx.compose.ui.hapticfeedback.HapticFeedbackType\n', 1)
-          if 'import androidx.compose.ui.platform.LocalHapticFeedback' not in s:
-              s = s.replace('import androidx.compose.ui.Modifier\n', 'import androidx.compose.ui.Modifier\nimport androidx.compose.ui.platform.LocalHapticFeedback\n', 1)
-          marker = '    val showInferenceStats by settingsViewModel.showInferenceStats.collectAsStateWithLifecycle()\n'
-          if 'val haptics = LocalHapticFeedback.current' not in s:
-              if marker not in s: raise SystemExit('Item 6: SettingsScreen state marker not found')
-              s = s.replace(marker, marker + '    val haptics = LocalHapticFeedback.current\n', 1)
-          old = '                            ToolListItem(tool, enabledTools.contains(tool.id)) { settingsViewModel.toggleTool(tool, it) }'
-          new = '                            ToolListItem(tool, enabledTools.contains(tool.id)) { enabled ->\n                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)\n                                settingsViewModel.toggleTool(tool, enabled)\n                            }'
-          if old in s: s = s.replace(old, new, 1)
-          settings.write_text(s)
-      - name: Re-read Item 6 changes
+          screen = Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt')
+          s = screen.read_text()
+          s = s.replace('import androidx.compose.material3.Surface\n', 'import androidx.compose.material3.SnackbarHost\nimport androidx.compose.material3.SnackbarHostState\nimport androidx.compose.material3.Surface\n', 1)
+          state_marker = '    val haptics = LocalHapticFeedback.current\n'
+          if 'val snackbarHostState = remember { SnackbarHostState() }' not in s:
+              if state_marker not in s: raise SystemExit('Item 7: ChatScreen haptic state marker not found')
+              s = s.replace(state_marker, state_marker + '    val snackbarHostState = remember { SnackbarHostState() }\n', 1)
+          effect_marker = '    LaunchedEffect(uiState.isLoading) {\n'
+          snackbar_effect = '''    LaunchedEffect(Unit) {\n        viewModel.snackbarEvent.collect { message ->\n            snackbarHostState.showSnackbar(message)\n        }\n    }\n\n'''
+          if 'viewModel.snackbarEvent.collect' not in s:
+              if effect_marker not in s: raise SystemExit('Item 7: LaunchedEffect insertion marker not found')
+              s = s.replace(effect_marker, snackbar_effect + effect_marker, 1)
+          column_start = '''    Column(\n        modifier = Modifier\n            .fillMaxSize()\n            .background(MaterialTheme.colorScheme.background)\n            .imePadding()\n    ) {'''
+          scaffold_start = '''    Scaffold(\n        snackbarHost = { SnackbarHost(snackbarHostState) }\n    ) { innerPadding ->\n        Column(\n            modifier = Modifier\n                .fillMaxSize()\n                .background(MaterialTheme.colorScheme.background)\n                .padding(innerPadding)\n                .imePadding()\n        ) {'''
+          if 'snackbarHost = { SnackbarHost(snackbarHostState) }' not in s:
+              if column_start not in s: raise SystemExit('Item 7: root ChatScreen Column marker not found')
+              s = s.replace(column_start, scaffold_start, 1)
+              tail = '''        }\n    }\n\n    // Tool picker bottom sheet'''
+              replacement = '''        }\n        }\n    }\n\n    // Tool picker bottom sheet'''
+              if tail not in s: raise SystemExit('Item 7: root ChatScreen Column closing marker not found')
+              s = s.replace(tail, replacement, 1)
+          message_block = '''                            ) {\n                                ChatBubble(message = message, showInferenceStats = uiState.showInferenceStats)\n                            }'''
+          filtered_block = '''                            ) {\n                                if (!(message.messageType == ChatMessage.MessageType.ERROR && message.content.isBlank())) {\n                                    ChatBubble(message = message, showInferenceStats = uiState.showInferenceStats)\n                                }\n                            }'''
+          if message_block in s:
+              s = s.replace(message_block, filtered_block, 1)
+          screen.write_text(s)
+      - name: Re-read Item 7 changes
         run: |
-          grep -n "LocalHapticFeedback\|performHapticFeedback" ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt ui/src/main/java/com/gemofgemma/ui/settings/SettingsScreen.kt
+          grep -n "snackbarEvent\|SnackbarHost\|SnackbarHostState" ui/src/main/java/com/gemofgemma/ui/chat/ChatViewModel.kt ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt
       - name: Compile ui
         run: ./gradlew --no-configuration-cache :ui:compileDebugKotlin --stacktrace
-      - name: Commit Item 6
+      - name: Commit Item 7
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt ui/src/main/java/com/gemofgemma/ui/settings/SettingsScreen.kt
-          git commit -m "feat: add haptic feedback to key interactions"
+          git add ui/src/main/java/com/gemofgemma/ui/chat/ChatViewModel.kt ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt
+          git commit -m "feat: route transient action errors to snackbar"
           git push origin HEAD
