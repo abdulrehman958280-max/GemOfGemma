@@ -1,0 +1,69 @@
+name: Item 12 split ChatScreen
+on:
+  push:
+    paths:
+      - .github/workflows/item-12-split.yml
+permissions:
+  contents: write
+jobs:
+  item-12:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Split ChatScreen
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt')
+          text = p.read_text()
+          chat_start = text.index('@Composable\nprivate fun ChatBubble')
+          input_start = text.index('@Composable\nprivate fun ChatInputBar')
+          pending_start = text.index('// ── Pending Image Preview')
+          tool_start = text.index('// ── Tool Picker Bottom Sheet')
+          conversation_start = text.index('// ── Conversation History Bottom Sheet')
+          chat_block = text[chat_start:input_start].replace('@Composable\nprivate fun ChatBubble', '@Composable\nfun ChatBubble', 1)
+          input_block = text[input_start:pending_start].replace('@Composable\nprivate fun ChatInputBar', '@Composable\nfun ChatInputBar', 1)
+          tool_block = text[tool_start:conversation_start].replace('private fun ToolPickerBottomSheet', 'fun ToolPickerBottomSheet', 1)
+          common = '''package com.gemofgemma.ui.chat\n\nimport android.graphics.BitmapFactory\nimport androidx.activity.compose.rememberLauncherForActivityResult\nimport androidx.activity.result.PickVisualMediaRequest\nimport androidx.activity.result.contract.ActivityResultContracts\nimport androidx.compose.animation.*\nimport androidx.compose.foundation.*\nimport androidx.compose.foundation.layout.*\nimport androidx.compose.foundation.lazy.*\nimport androidx.compose.foundation.shape.*\nimport androidx.compose.foundation.text.selection.SelectionContainer\nimport androidx.compose.material.icons.Icons\nimport androidx.compose.material.icons.automirrored.filled.Send\nimport androidx.compose.material.icons.filled.*\nimport androidx.compose.material3.*\nimport androidx.compose.runtime.*\nimport androidx.compose.ui.Alignment\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.draw.*\nimport androidx.compose.ui.graphics.*\nimport androidx.compose.ui.hapticfeedback.HapticFeedbackType\nimport androidx.compose.ui.layout.ContentScale\nimport androidx.compose.ui.platform.*\nimport androidx.compose.ui.text.*\nimport androidx.compose.ui.text.font.*\nimport androidx.compose.ui.text.style.TextOverflow\nimport androidx.compose.ui.unit.*\nimport com.gemofgemma.core.model.*\nimport com.gemofgemma.ui.camera.*\nimport com.gemofgemma.ui.components.*\nimport com.gemofgemma.ui.theme.*\nimport com.google.accompanist.permissions.*\n\n'''
+          Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatBubble.kt').write_text(common + chat_block)
+          Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatInputBar.kt').write_text(common + input_block)
+          Path('ui/src/main/java/com/gemofgemma/ui/chat/ToolPickerSheet.kt').write_text(common + tool_block)
+
+          marker = '// ── Minimal header ───────────────────────────────────'
+          banner = '// ── Model offline banner ─────────────────────────────────'
+          hstart = text.index(marker)
+          hend = text.index(banner, hstart)
+          header = '''// ── Minimal header ───────────────────────────────────\n        ChatTopBar(\n            onHistoryClick = viewModel::toggleConversationHistory,\n            onNewChat = viewModel::newChat,\n            onSettingsClick = onNavigateToSettings\n        )\n        '''
+          text = text[:hstart] + header + text[hend:]
+          for start_marker, end_marker in [
+              ('@Composable\nprivate fun ChatBubble', '@Composable\nprivate fun ChatInputBar'),
+              ('@Composable\nprivate fun ChatInputBar', '// ── Pending Image Preview'),
+              ('// ── Tool Picker Bottom Sheet', '// ── Conversation History Bottom Sheet')
+          ]:
+              s = text.find(start_marker)
+              if s >= 0:
+                  e = text.find(end_marker, s)
+                  if e >= 0: text = text[:s] + text[e:]
+          p.write_text(text)
+
+          Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatTopBar.kt').write_text('''package com.gemofgemma.ui.chat\n\nimport androidx.compose.foundation.layout.*\nimport androidx.compose.material.icons.Icons\nimport androidx.compose.material.icons.filled.*\nimport androidx.compose.material3.*\nimport androidx.compose.runtime.Composable\nimport androidx.compose.ui.Alignment\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.text.font.FontWeight\nimport androidx.compose.ui.unit.dp\n\n@Composable\nfun ChatTopBar(\n    onHistoryClick: () -> Unit,\n    onNewChat: () -> Unit,\n    onSettingsClick: () -> Unit\n) {\n    Surface(color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f), tonalElevation = 2.dp) {\n        Row(\n            modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 8.dp, vertical = 10.dp),\n            verticalAlignment = Alignment.CenterVertically\n        ) {\n            Icon(Icons.Default.SmartToy, contentDescription = "OmniCode", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))\n            Spacer(modifier = Modifier.width(8.dp))\n            Text("OmniCode", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)\n            Spacer(modifier = Modifier.weight(1f))\n            IconButton(onClick = onHistoryClick, modifier = Modifier.size(48.dp)) {\n                Icon(Icons.Default.Forum, contentDescription = "Chat History", tint = MaterialTheme.colorScheme.onSurfaceVariant)\n            }\n            IconButton(onClick = onNewChat, modifier = Modifier.size(48.dp)) {\n                Icon(Icons.Default.Add, contentDescription = "New Chat", tint = MaterialTheme.colorScheme.primary)\n            }\n            IconButton(onClick = onSettingsClick, modifier = Modifier.size(48.dp)) {\n                Icon(Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)\n            }\n        }\n    }\n}\n''')
+          PY
+      - name: Compile item 12
+        run: ./gradlew --no-configuration-cache :ui:compileDebugKotlin --stacktrace
+      - name: Commit item 12
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ui/src/main/java/com/gemofgemma/ui/chat
+          git commit -m "refactor: split ChatScreen composables"
+          git push origin HEAD
+      - name: Remove workflow
+        run: |
+          git rm .github/workflows/item-12-split.yml
+          git commit -m "chore: remove item 12 verification workflow"
+          git push origin HEAD
