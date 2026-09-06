@@ -21,8 +21,7 @@ jobs:
           from pathlib import Path
 
           def fix_imports(s):
-              s = s.replace('import androidx.compose.ui.hapticfeedback.LocalHapticFeedback\n', 'import androidx.compose.ui.platform.LocalHapticFeedback\n')
-              return s
+              return s.replace('import androidx.compose.ui.hapticfeedback.LocalHapticFeedback\n', 'import androidx.compose.ui.platform.LocalHapticFeedback\n')
 
           chat = Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt')
           s = fix_imports(chat.read_text())
@@ -38,17 +37,23 @@ jobs:
           send_old = '''                    onSend = {\n                        keyboardController?.hide()\n                        viewModel.sendMessage()\n                    },'''
           send_new = '''                    onSend = {\n                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)\n                        keyboardController?.hide()\n                        viewModel.sendMessage()\n                    },'''
           if send_old in s: s = s.replace(send_old, send_new, 1)
-          delete_old = '''                            onClick = {\n                                pendingDelete = null\n                                onDelete(conversation.id)\n                            }'''
-          delete_new = '''                            onClick = {\n                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)\n                                pendingDelete = null\n                                onDelete(conversation.id)\n                            }'''
-          if delete_old in s: s = s.replace(delete_old, delete_new, 1)
           tool_call_old = '            onToggleTool = viewModel::toggleTool,'
           tool_call_new = '            onToggleTool = { toolId, enabled ->\n                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)\n                viewModel.toggleTool(toolId, enabled)\n            },'
           if tool_call_old in s: s = s.replace(tool_call_old, tool_call_new, 1)
-          history_marker = '    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)\n'
-          if 'private fun ConversationHistorySheet' in s and '    val haptics = LocalHapticFeedback.current\n    var pendingDelete' not in s:
-              if history_marker not in s: raise SystemExit('Item 6: conversation history state marker not found')
-              s = s.replace(history_marker, history_marker + '    val haptics = LocalHapticFeedback.current\n', 1)
-          chat.write_text(s)
+
+          history_marker = '// ── Conversation History Bottom Sheet'
+          if history_marker not in s: raise SystemExit('Item 6: conversation history section not found')
+          head, history = s.split(history_marker, 1)
+          accidental = '    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)\n    val haptics = LocalHapticFeedback.current\n'
+          head = head.replace(accidental, '    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)\n', 1)
+          sheet_marker = '    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)\n'
+          if '    val haptics = LocalHapticFeedback.current\n' not in history:
+              if sheet_marker not in history: raise SystemExit('Item 6: conversation sheet state marker not found')
+              history = history.replace(sheet_marker, sheet_marker + '    val haptics = LocalHapticFeedback.current\n', 1)
+          delete_old = '''                            onClick = {\n                                pendingDelete = null\n                                onDelete(conversation.id)\n                            }'''
+          delete_new = '''                            onClick = {\n                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)\n                                pendingDelete = null\n                                onDelete(conversation.id)\n                            }'''
+          if delete_old in history: history = history.replace(delete_old, delete_new, 1)
+          chat.write_text(head + history_marker + history)
 
           settings = Path('ui/src/main/java/com/gemofgemma/ui/settings/SettingsScreen.kt')
           s = fix_imports(settings.read_text())
