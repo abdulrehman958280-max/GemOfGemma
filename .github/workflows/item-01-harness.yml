@@ -19,17 +19,12 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
-
           vm = Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatViewModel.kt')
           s = vm.read_text()
-          if 'import kotlinx.coroutines.flow.MutableSharedFlow\n' not in s:
-              s = s.replace('import kotlinx.coroutines.flow.MutableStateFlow\n', 'import kotlinx.coroutines.flow.MutableSharedFlow\nimport kotlinx.coroutines.flow.MutableStateFlow\n', 1)
-          if 'import kotlinx.coroutines.flow.SharedFlow\n' not in s:
-              s = s.replace('import kotlinx.coroutines.flow.StateFlow\n', 'import kotlinx.coroutines.flow.SharedFlow\nimport kotlinx.coroutines.flow.StateFlow\n', 1)
-          if 'import kotlinx.coroutines.flow.asSharedFlow\n' not in s:
-              s = s.replace('import kotlinx.coroutines.flow.asStateFlow\n', 'import kotlinx.coroutines.flow.asSharedFlow\nimport kotlinx.coroutines.flow.asStateFlow\n', 1)
-          if 'import kotlinx.coroutines.flow.collect\n' not in s:
-              s = s.replace('import kotlinx.coroutines.flow.catch\n', 'import kotlinx.coroutines.flow.catch\nimport kotlinx.coroutines.flow.collect\n', 1)
+          if 'import kotlinx.coroutines.flow.MutableSharedFlow\n' not in s: s = s.replace('import kotlinx.coroutines.flow.MutableStateFlow\n', 'import kotlinx.coroutines.flow.MutableSharedFlow\nimport kotlinx.coroutines.flow.MutableStateFlow\n', 1)
+          if 'import kotlinx.coroutines.flow.SharedFlow\n' not in s: s = s.replace('import kotlinx.coroutines.flow.StateFlow\n', 'import kotlinx.coroutines.flow.SharedFlow\nimport kotlinx.coroutines.flow.StateFlow\n', 1)
+          if 'import kotlinx.coroutines.flow.asSharedFlow\n' not in s: s = s.replace('import kotlinx.coroutines.flow.asStateFlow\n', 'import kotlinx.coroutines.flow.asSharedFlow\nimport kotlinx.coroutines.flow.asStateFlow\n', 1)
+          if 'import kotlinx.coroutines.flow.collect\n' not in s: s = s.replace('import kotlinx.coroutines.flow.catch\n', 'import kotlinx.coroutines.flow.catch\nimport kotlinx.coroutines.flow.collect\n', 1)
           marker = '    val pendingConfirmation: StateFlow<ActionResult.NeedsConfirmation?> = _pendingConfirmation.asStateFlow()\n'
           if 'val snackbarEvent: SharedFlow<String>' not in s:
               if marker not in s: raise SystemExit('Item 7 VM state marker not found')
@@ -38,22 +33,18 @@ jobs:
           new = '''is com.gemofgemma.core.model.ActionResult.Error -> {\n                        _snackbarEvent.tryEmit("Action failed: ${result.message}")\n                        ""\n                    }\n                    is com.gemofgemma.core.model.ActionResult.PermissionRequired -> {\n                        _snackbarEvent.tryEmit("Permissions needed: ${result.permissions.joinToString()}")\n                        ""\n                    }'''
           if old not in s: raise SystemExit('Item 7 VM action-result marker not found')
           vm.write_text(s.replace(old, new, 1))
-
           screen = Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt')
           s = screen.read_text()
-          if 'import androidx.compose.material3.SnackbarHost\n' not in s:
+          if 'import androidx.compose.material3.SnackbarHostState\n' not in s:
               s = s.replace('import androidx.compose.material3.Surface\n', 'import androidx.compose.material3.SnackbarHost\nimport androidx.compose.material3.SnackbarHostState\nimport androidx.compose.material3.Surface\n', 1)
-          elif 'import androidx.compose.material3.SnackbarHostState\n' not in s:
-              s = s.replace('import androidx.compose.material3.SnackbarHost\n', 'import androidx.compose.material3.SnackbarHost\nimport androidx.compose.material3.SnackbarHostState\n', 1)
-          if 'import androidx.compose.material3.Scaffold\n' not in s:
-              s = s.replace('import androidx.compose.material3.Surface\n', 'import androidx.compose.material3.Scaffold\nimport androidx.compose.material3.Surface\n', 1)
+          elif 'import androidx.compose.material3.SnackbarHost\n' not in s:
+              s = s.replace('import androidx.compose.material3.Surface\n', 'import androidx.compose.material3.SnackbarHost\nimport androidx.compose.material3.Surface\n', 1)
+          if 'import androidx.compose.material3.Scaffold\n' not in s: s = s.replace('import androidx.compose.material3.Surface\n', 'import androidx.compose.material3.Scaffold\nimport androidx.compose.material3.Surface\n', 1)
           marker = '    val pendingConfirmation by viewModel.pendingConfirmation.collectAsStateWithLifecycle()\n'
           if 'val snackbarHostState = remember { SnackbarHostState() }' not in s:
-              if marker not in s: raise SystemExit('Item 7 Screen state marker not found')
               s = s.replace(marker, marker + '    val snackbarHostState = remember { SnackbarHostState() }\n', 1)
           marker = '    LaunchedEffect(uiState.isLoading) {'
           if 'viewModel.snackbarEvent.collect' not in s:
-              if marker not in s: raise SystemExit('Item 7 Screen effect marker not found')
               s = s.replace(marker, '''    LaunchedEffect(Unit) {\n        viewModel.snackbarEvent.collect { message ->\n            snackbarHostState.showSnackbar(message)\n        }\n    }\n\n    LaunchedEffect(uiState.isLoading) {''', 1)
           old = '''    Column(\n        modifier = Modifier\n            .fillMaxSize()\n            .background(MaterialTheme.colorScheme.background)\n            .imePadding()\n    ) {'''
           new = '''    Scaffold(\n        snackbarHost = { SnackbarHost(snackbarHostState) }\n    ) { innerPadding ->\n        Column(\n            modifier = Modifier\n                .fillMaxSize()\n                .background(MaterialTheme.colorScheme.background)\n                .padding(innerPadding)\n                .imePadding()\n        ) {'''
@@ -75,4 +66,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add ui/src/main/java/com/gemofgemma/ui/chat/ChatViewModel.kt ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt
           git commit -m "feat: route transient action errors to snackbar"
-          git push origin HEAD
+          git pull --rebase origin fix/sequential-14-item-polish
+          git push origin HEAD:fix/sequential-14-item-polish
