@@ -19,7 +19,6 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
-
           vm = Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatViewModel.kt')
           s = vm.read_text()
           s = s.replace('import kotlinx.coroutines.flow.MutableStateFlow\n', 'import kotlinx.coroutines.flow.MutableSharedFlow\nimport kotlinx.coroutines.flow.MutableStateFlow\n', 1)
@@ -36,13 +35,13 @@ jobs:
           error_replacement = '''                    is com.gemofgemma.core.model.ActionResult.Error -> {\n                        _snackbarEvent.tryEmit("Action failed: ${result.message}")\n                        return ChatMessage(\n                            id = UUID.randomUUID().toString(),\n                            role = ChatMessage.Role.ASSISTANT,\n                            content = "",\n                            messageType = ChatMessage.MessageType.ERROR\n                        )\n                    }\n                    is com.gemofgemma.core.model.ActionResult.PermissionRequired -> {\n                        _snackbarEvent.tryEmit("Permissions needed: ${result.permissions.joinToString()}")\n                        return ChatMessage(\n                            id = UUID.randomUUID().toString(),\n                            role = ChatMessage.Role.ASSISTANT,\n                            content = "",\n                            messageType = ChatMessage.MessageType.ERROR\n                        )\n                    }'''
           if error_branch not in s:
               if 'Action failed: ${result.message}' not in s: raise SystemExit('Item 7: action error branch not found')
-          else:
-              s = s.replace(error_branch, error_replacement, 1)
+          else: s = s.replace(error_branch, error_replacement, 1)
           vm.write_text(s)
 
           screen = Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt')
           s = screen.read_text()
-          s = s.replace('import androidx.compose.material3.Surface\n', 'import androidx.compose.material3.SnackbarHost\nimport androidx.compose.material3.SnackbarHostState\nimport androidx.compose.material3.Surface\n', 1)
+          if 'import androidx.compose.material3.Scaffold\n' not in s:
+              s = s.replace('import androidx.compose.material3.SnackbarHost\n', 'import androidx.compose.material3.Scaffold\nimport androidx.compose.material3.SnackbarHost\n', 1)
           state_marker = '    val haptics = LocalHapticFeedback.current\n'
           if 'val snackbarHostState = remember { SnackbarHostState() }' not in s:
               if state_marker not in s: raise SystemExit('Item 7: ChatScreen haptic state marker not found')
@@ -63,12 +62,11 @@ jobs:
               s = s.replace(tail, replacement, 1)
           message_block = '''                            ) {\n                                ChatBubble(message = message, showInferenceStats = uiState.showInferenceStats)\n                            }'''
           filtered_block = '''                            ) {\n                                if (!(message.messageType == ChatMessage.MessageType.ERROR && message.content.isBlank())) {\n                                    ChatBubble(message = message, showInferenceStats = uiState.showInferenceStats)\n                                }\n                            }'''
-          if message_block in s:
-              s = s.replace(message_block, filtered_block, 1)
+          if message_block in s: s = s.replace(message_block, filtered_block, 1)
           screen.write_text(s)
       - name: Re-read Item 7 changes
         run: |
-          grep -n "snackbarEvent\|SnackbarHost\|SnackbarHostState" ui/src/main/java/com/gemofgemma/ui/chat/ChatViewModel.kt ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt
+          grep -n "snackbarEvent\|SnackbarHost\|SnackbarHostState\|Scaffold" ui/src/main/java/com/gemofgemma/ui/chat/ChatViewModel.kt ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt
       - name: Compile ui
         run: ./gradlew --no-configuration-cache :ui:compileDebugKotlin --stacktrace
       - name: Commit Item 7
