@@ -1,0 +1,143 @@
+name: Item 13 strings
+on:
+  push:
+    paths:
+      - .github/workflows/item-13-strings.yml
+permissions:
+  contents: write
+
+jobs:
+  chat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Externalize ChatScreen strings
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import html, json, re
+          path=Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt')
+          xml=Path('ui/src/main/res/values/strings.xml')
+          text=path.read_text(); resources=xml.read_text() if xml.exists() else '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n</resources>\n'
+          values=[]
+          patterns=[r'Text\(\s*(?:text\s*=\s*)?"((?:\\.|[^"\\])*)"',r'contentDescription\s*=\s*"((?:\\.|[^"\\])*)"',r'(?<![A-Za-z0-9_])label\s*=\s*"((?:\\.|[^"\\])*)"']
+          for pat in patterns: values += re.findall(pat,text)
+          def key(v):
+              k=re.sub(r'[^A-Za-z0-9]+','_',v).strip('_').lower() or 'ui_text'
+              return k[:80]
+          mapping={}
+          for raw in values:
+              if '$' in raw: continue
+              try: v=json.loads('"'+raw+'"')
+              except: continue
+              if len(v.strip())<2: continue
+              k=key(v); base=k; n=2
+              while k in mapping and mapping[k]!=v: k=f'{base}_{n}'; n+=1
+              mapping[k]=v
+          for k,v in mapping.items():
+              if not re.search(rf'<string name="{re.escape(k)}">',resources):
+                  resources=resources.replace('</resources>',f'    <string name="{k}">{html.escape(v,quote=False)}</string>\n</resources>')
+              text=text.replace(f'Text("{v}")',f'Text(stringResource(R.string.{k}))')
+              text=text.replace(f'Text(text = "{v}")',f'Text(text = stringResource(R.string.{k}))')
+              text=text.replace(f'contentDescription = "{v}"',f'contentDescription = stringResource(R.string.{k})')
+              text=text.replace(f'label = "{v}"',f'label = stringResource(R.string.{k})')
+          if mapping and 'import androidx.compose.ui.res.stringResource' not in text:
+              lines=text.splitlines(); lines.insert(1,'import androidx.compose.ui.res.stringResource'); text='\n'.join(lines)+'\n'
+          path.write_text(text); xml.write_text(resources)
+          PY
+      - run: ./gradlew --no-configuration-cache :ui:compileDebugKotlin --stacktrace
+      - name: Commit ChatScreen strings
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt ui/src/main/res/values/strings.xml
+          git commit -m "refactor: externalize ChatScreen strings"
+          git push origin HEAD
+
+  onboarding:
+    needs: chat
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Externalize OnboardingScreen strings
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import html, json, re
+          path=Path('ui/src/main/java/com/gemofgemma/ui/onboarding/OnboardingScreen.kt'); xml=Path('ui/src/main/res/values/strings.xml')
+          text=path.read_text(); resources=xml.read_text()
+          values=[]
+          for pat in [r'Text\(\s*(?:text\s*=\s*)?"((?:\\.|[^"\\])*)"',r'contentDescription\s*=\s*"((?:\\.|[^"\\])*)"',r'(?<![A-Za-z0-9_])label\s*=\s*"((?:\\.|[^"\\])*)"']:
+              values += re.findall(pat,text)
+          for raw in values:
+              if '$' in raw: continue
+              try:v=json.loads('"'+raw+'"')
+              except:continue
+              if len(v.strip())<2:continue
+              k=re.sub(r'[^A-Za-z0-9]+','_',v).strip('_').lower()[:80]
+              if not k:continue
+              if not re.search(rf'<string name="{re.escape(k)}">',resources):resources=resources.replace('</resources>',f'    <string name="{k}">{html.escape(v,quote=False)}</string>\n</resources>')
+              text=text.replace(f'Text("{v}")',f'Text(stringResource(R.string.{k}))').replace(f'Text(text = "{v}")',f'Text(text = stringResource(R.string.{k}))').replace(f'contentDescription = "{v}"',f'contentDescription = stringResource(R.string.{k})').replace(f'label = "{v}"',f'label = stringResource(R.string.{k})')
+          if 'stringResource(' in text and 'import androidx.compose.ui.res.stringResource' not in text:
+              lines=text.splitlines();lines.insert(1,'import androidx.compose.ui.res.stringResource');text='\n'.join(lines)+'\n'
+          path.write_text(text);xml.write_text(resources)
+          PY
+      - run: ./gradlew --no-configuration-cache :ui:compileDebugKotlin --stacktrace
+      - name: Commit Onboarding strings
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ui/src/main/java/com/gemofgemma/ui/onboarding/OnboardingScreen.kt ui/src/main/res/values/strings.xml
+          git commit -m "refactor: externalize OnboardingScreen strings"
+          git push origin HEAD
+
+  settings:
+    needs: onboarding
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Externalize SettingsScreen strings
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import html,json,re
+          path=Path('ui/src/main/java/com/gemofgemma/ui/settings/SettingsScreen.kt');xml=Path('ui/src/main/res/values/strings.xml')
+          text=path.read_text();resources=xml.read_text();values=[]
+          for pat in [r'Text\(\s*(?:text\s*=\s*)?"((?:\\.|[^"\\])*)"',r'contentDescription\s*=\s*"((?:\\.|[^"\\])*)"',r'(?<![A-Za-z0-9_])label\s*=\s*"((?:\\.|[^"\\])*)"']:
+              values += re.findall(pat,text)
+          for raw in values:
+              if '$' in raw:continue
+              try:v=json.loads('"'+raw+'"')
+              except:continue
+              if len(v.strip())<2:continue
+              k=re.sub(r'[^A-Za-z0-9]+','_',v).strip('_').lower()[:80]
+              if not k:continue
+              if not re.search(rf'<string name="{re.escape(k)}">',resources):resources=resources.replace('</resources>',f'    <string name="{k}">{html.escape(v,quote=False)}</string>\n</resources>')
+              text=text.replace(f'Text("{v}")',f'Text(stringResource(R.string.{k}))').replace(f'Text(text = "{v}")',f'Text(text = stringResource(R.string.{k}))').replace(f'contentDescription = "{v}"',f'contentDescription = stringResource(R.string.{k})').replace(f'label = "{v}"',f'label = stringResource(R.string.{k})')
+          if 'stringResource(' in text and 'import androidx.compose.ui.res.stringResource' not in text:
+              lines=text.splitlines();lines.insert(1,'import androidx.compose.ui.res.stringResource');text='\n'.join(lines)+'\n'
+          path.write_text(text);xml.write_text(resources)
+          PY
+      - run: ./gradlew --no-configuration-cache :ui:compileDebugKotlin --stacktrace
+      - name: Commit Settings strings
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ui/src/main/java/com/gemofgemma/ui/settings/SettingsScreen.kt ui/src/main/res/values/strings.xml
+          git commit -m "refactor: externalize SettingsScreen strings"
+          git push origin HEAD
