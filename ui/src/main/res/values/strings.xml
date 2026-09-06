@@ -3,6 +3,10 @@
     <string name="chat_ask_me_anything">Ask me anything</string>
     <string name="chat_camera">Camera</string>
     <string name="chat_cancel">Cancel</string>
+    <string name="chat_cd_camera">Camera</string>
+    <string name="chat_cd_choose_photo">Choose photo</string>
+    <string name="chat_cd_download_model">Download model</string>
+    <string name="chat_cd_tools">Tools</string>
     <string name="chat_confirm">Confirm</string>
     <string name="chat_confirm_action">Confirm action</string>
     <string name="chat_conversations">Conversations</string>

@@ -268,7 +268,7 @@ fun ChatScreen(
                 ) {
                     Icon(
                         Icons.Default.CloudDownload,
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.chat_cd_download_model),
                         tint = MaterialTheme.colorScheme.onErrorContainer,      
                         modifier = Modifier.size(20.dp)
                     )
@@ -493,7 +493,7 @@ fun ChatScreen(
                         leadingIcon = {
                             Icon(
                                 Icons.Default.CameraAlt,
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.chat_cd_camera),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -509,7 +509,7 @@ fun ChatScreen(
                         leadingIcon = {
                             Icon(
                                 Icons.Default.PhotoLibrary,
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.chat_cd_choose_photo),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -528,7 +528,7 @@ fun ChatScreen(
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Build,
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.chat_cd_tools),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
