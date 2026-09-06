@@ -1,4 +1,4 @@
-name: Item 03 verification harness
+name: Item 04 verification harness
 on:
   push:
     paths:
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: write
 jobs:
-  item-03:
+  item-04:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,33 +15,50 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
-      - name: Apply Item 3
+      - name: Apply Item 4
         shell: python
         run: |
           from pathlib import Path
-          p = Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt')
-          s = p.read_text()
-          before = s
-          count_36 = s.count('modifier = Modifier.size(36.dp)')
-          if count_36 == 0: raise SystemExit('Item 3: no explicit 36dp IconButton modifiers found')
-          s = s.replace('modifier = Modifier.size(36.dp)', 'modifier = Modifier.size(48.dp)')
-          if '                        .size(44.dp)' not in s:
-              raise SystemExit('Item 3: 44dp attachment button marker not found')
-          s = s.replace('                        .size(44.dp)', '                        .size(48.dp)', 1)
-          old_delete = 'modifier = Modifier.size(32.dp)'
-          if old_delete not in s: raise SystemExit('Item 3: 32dp conversation delete button marker not found')
-          s = s.replace(old_delete, 'modifier = Modifier.size(48.dp)', 1)
-          if s == before: raise SystemExit('Item 3: no changes made')
-          p.write_text(s)
-      - name: Re-read Item 3 changes
+
+          color = Path('ui/src/main/java/com/gemofgemma/ui/theme/Color.kt')
+          s = color.read_text()
+          if 'GemPrimaryDark' not in s:
+              s += '''\n\n// Dark theme keeps the cream/gold brand while using dark neutral surfaces.\nval GemPrimaryDark = Color(0xFFEBC56A)\nval GemOnPrimaryDark = Color(0xFF3F2E00)\nval GemPrimaryContainerDark = Color(0xFF5B4300)\nval GemOnPrimaryContainerDark = Color(0xFFFFE0A3)\n\nval GemSecondaryDark = Color(0xFFD0C7B7)\nval GemOnSecondaryDark = Color(0xFF353129)\nval GemSecondaryContainerDark = Color(0xFF4B463D)\nval GemOnSecondaryContainerDark = Color(0xFFECE3D4)\n\nval GemTertiaryDark = Color(0xFFAED3C8)\nval GemOnTertiaryDark = Color(0xFF173731)\nval GemTertiaryContainerDark = Color(0xFF2F514A)\nval GemOnTertiaryContainerDark = Color(0xFFC9E7DE)\n\nval GemBackgroundDark = Color(0xFF171512)\nval GemOnBackgroundDark = Color(0xFFEAE1D5)\nval GemSurfaceDark = Color(0xFF1E1B17)\nval GemOnSurfaceDark = Color(0xFFEAE1D5)\nval GemSurfaceVariantDark = Color(0xFF4A453D)\nval GemOnSurfaceVariantDark = Color(0xFFCBC2B6)\nval GemOutlineDark = Color(0xFF938D83)\nval GemSurfaceContainerDark = Color(0xFF25221D)\nval GemSurfaceContainerHighDark = Color(0xFF2D2923)\n\nval GemErrorDark = Color(0xFFFFB4AB)\nval GemOnErrorDark = Color(0xFF690005)\n'''
+              color.write_text(s)
+
+          theme = Path('ui/src/main/java/com/gemofgemma/ui/theme/Theme.kt')
+          s = theme.read_text()
+          s = s.replace('import androidx.compose.material3.lightColorScheme\n', 'import androidx.compose.material3.darkColorScheme\nimport androidx.compose.material3.lightColorScheme\n')
+          if 'private val OmniCodeDarkColorScheme' not in s:
+              marker = ')\n\n@Composable\nfun OmniCodeTheme('
+              dark_scheme = ''')\n\nprivate val OmniCodeDarkColorScheme = darkColorScheme(\n    primary = GemPrimaryDark,\n    onPrimary = GemOnPrimaryDark,\n    primaryContainer = GemPrimaryContainerDark,\n    onPrimaryContainer = GemOnPrimaryContainerDark,\n    secondary = GemSecondaryDark,\n    onSecondary = GemOnSecondaryDark,\n    secondaryContainer = GemSecondaryContainerDark,\n    onSecondaryContainer = GemOnSecondaryContainerDark,\n    tertiary = GemTertiaryDark,\n    onTertiary = GemOnTertiaryDark,\n    tertiaryContainer = GemTertiaryContainerDark,\n    onTertiaryContainer = GemOnTertiaryContainerDark,\n    background = GemBackgroundDark,\n    onBackground = GemOnBackgroundDark,\n    surface = GemSurfaceDark,\n    onSurface = GemOnSurfaceDark,\n    surfaceVariant = GemSurfaceVariantDark,\n    onSurfaceVariant = GemOnSurfaceVariantDark,\n    outline = GemOutlineDark,\n    surfaceContainer = GemSurfaceContainerDark,\n    surfaceContainerHigh = GemSurfaceContainerHighDark,\n    error = GemErrorDark,\n    onError = GemOnErrorDark\n)\n\n@Composable\nfun OmniCodeTheme('''
+              if marker not in s: raise SystemExit('Item 4: Theme scheme insertion marker not found')
+              s = s.replace(marker, dark_scheme, 1)
+          s = s.replace('    darkTheme: Boolean = false,', '    darkTheme: Boolean = false,', 1)
+          s = s.replace('                isAppearanceLightStatusBars = true\n                isAppearanceLightNavigationBars = true', '                isAppearanceLightStatusBars = !darkTheme\n                isAppearanceLightNavigationBars = !darkTheme', 1)
+          s = s.replace('        colorScheme = OmniCodeColorScheme,', '        colorScheme = if (darkTheme) OmniCodeDarkColorScheme else OmniCodeColorScheme,', 1)
+          theme.write_text(s)
+
+          activity = Path('app/src/main/java/com/gemofgemma/MainActivity.kt')
+          s = activity.read_text()
+          if 'import androidx.compose.foundation.isSystemInDarkTheme' not in s:
+              s = s.replace('import androidx.compose.foundation.layout.fillMaxSize\n', 'import androidx.compose.foundation.isSystemInDarkTheme\nimport androidx.compose.foundation.layout.fillMaxSize\n', 1)
+          if 'OmniCodeTheme(darkTheme = isSystemInDarkTheme())' not in s:
+              s = s.replace('            OmniCodeTheme {', '            OmniCodeTheme(darkTheme = isSystemInDarkTheme()) {', 1)
+          activity.write_text(s)
+      - name: Re-read Item 4 changes
         run: |
-          grep -n "size(48.dp)" ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt
+          grep -n "GemPrimaryDark\|GemBackgroundDark" ui/src/main/java/com/gemofgemma/ui/theme/Color.kt
+          grep -n "darkColorScheme\|OmniCodeDarkColorScheme\|isAppearanceLightStatusBars" ui/src/main/java/com/gemofgemma/ui/theme/Theme.kt
+          grep -n "isSystemInDarkTheme\|OmniCodeTheme(darkTheme" app/src/main/java/com/gemofgemma/MainActivity.kt
       - name: Compile ui
         run: ./gradlew --no-configuration-cache :ui:compileDebugKotlin --stacktrace
-      - name: Commit Item 3
+      - name: Compile app
+        run: ./gradlew --no-configuration-cache :app:compileDebugKotlin --stacktrace
+      - name: Commit Item 4
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt
-          git commit -m "fix: meet chat icon touch target minimums"
+          git add ui/src/main/java/com/gemofgemma/ui/theme/Color.kt ui/src/main/java/com/gemofgemma/ui/theme/Theme.kt app/src/main/java/com/gemofgemma/MainActivity.kt
+          git commit -m "feat: add system dark theme support"
           git push origin HEAD
