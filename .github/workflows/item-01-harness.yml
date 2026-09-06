@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -19,18 +19,17 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
+
           vm = Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatViewModel.kt')
           s = vm.read_text()
-          imports = [
-              ('import kotlinx.coroutines.flow.MutableSharedFlow\n', 'import kotlinx.coroutines.flow.MutableSharedFlow\n'),
-              ('import kotlinx.coroutines.flow.SharedFlow\n', 'import kotlinx.coroutines.flow.SharedFlow\n'),
-              ('import kotlinx.coroutines.flow.asSharedFlow\n', 'import kotlinx.coroutines.flow.asSharedFlow\n'),
-              ('import kotlinx.coroutines.flow.collect\n', 'import kotlinx.coroutines.flow.collect\n')
-          ]
-          if 'import kotlinx.coroutines.flow.MutableSharedFlow\n' not in s: s = s.replace('import kotlinx.coroutines.flow.MutableStateFlow\n', imports[0][1] + 'import kotlinx.coroutines.flow.MutableStateFlow\n', 1)
-          if 'import kotlinx.coroutines.flow.SharedFlow\n' not in s: s = s.replace('import kotlinx.coroutines.flow.StateFlow\n', imports[1][1] + 'import kotlinx.coroutines.flow.StateFlow\n', 1)
-          if 'import kotlinx.coroutines.flow.asSharedFlow\n' not in s: s = s.replace('import kotlinx.coroutines.flow.asStateFlow\n', imports[2][1] + 'import kotlinx.coroutines.flow.asStateFlow\n', 1)
-          if 'import kotlinx.coroutines.flow.collect\n' not in s: s = s.replace('import kotlinx.coroutines.flow.collect\n', 'import kotlinx.coroutines.flow.collect\n', 1) if 'import kotlinx.coroutines.flow.collect\n' in s else s.replace('import kotlinx.coroutines.flow.catch\n', 'import kotlinx.coroutines.flow.catch\nimport kotlinx.coroutines.flow.collect\n', 1)
+          if 'import kotlinx.coroutines.flow.MutableSharedFlow\n' not in s:
+              s = s.replace('import kotlinx.coroutines.flow.MutableStateFlow\n', 'import kotlinx.coroutines.flow.MutableSharedFlow\nimport kotlinx.coroutines.flow.MutableStateFlow\n', 1)
+          if 'import kotlinx.coroutines.flow.SharedFlow\n' not in s:
+              s = s.replace('import kotlinx.coroutines.flow.StateFlow\n', 'import kotlinx.coroutines.flow.SharedFlow\nimport kotlinx.coroutines.flow.StateFlow\n', 1)
+          if 'import kotlinx.coroutines.flow.asSharedFlow\n' not in s:
+              s = s.replace('import kotlinx.coroutines.flow.asStateFlow\n', 'import kotlinx.coroutines.flow.asSharedFlow\nimport kotlinx.coroutines.flow.asStateFlow\n', 1)
+          if 'import kotlinx.coroutines.flow.collect\n' not in s:
+              s = s.replace('import kotlinx.coroutines.flow.catch\n', 'import kotlinx.coroutines.flow.catch\nimport kotlinx.coroutines.flow.collect\n', 1)
           marker = '    val pendingConfirmation: StateFlow<ActionResult.NeedsConfirmation?> = _pendingConfirmation.asStateFlow()\n'
           if 'val snackbarEvent: SharedFlow<String>' not in s:
               if marker not in s: raise SystemExit('Item 7 VM state marker not found')
@@ -42,8 +41,10 @@ jobs:
 
           screen = Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt')
           s = screen.read_text()
-          if 'import androidx.compose.material3.SnackbarHostState\n' not in s:
-              s = s.replace('import androidx.compose.material3.SnackbarHost\n', 'import androidx.compose.material3.SnackbarHost\nimport androidx.compose.material3.SnackbarHostState\n', 1) if 'import androidx.compose.material3.SnackbarHost\n' in s else s.replace('import androidx.compose.material3.Surface\n', 'import androidx.compose.material3.SnackbarHost\nimport androidx.compose.material3.SnackbarHostState\nimport androidx.compose.material3.Surface\n', 1)
+          if 'import androidx.compose.material3.SnackbarHost\n' not in s:
+              s = s.replace('import androidx.compose.material3.Surface\n', 'import androidx.compose.material3.SnackbarHost\nimport androidx.compose.material3.SnackbarHostState\nimport androidx.compose.material3.Surface\n', 1)
+          elif 'import androidx.compose.material3.SnackbarHostState\n' not in s:
+              s = s.replace('import androidx.compose.material3.SnackbarHost\n', 'import androidx.compose.material3.SnackbarHost\nimport androidx.compose.material3.SnackbarHostState\n', 1)
           if 'import androidx.compose.material3.Scaffold\n' not in s:
               s = s.replace('import androidx.compose.material3.Surface\n', 'import androidx.compose.material3.Scaffold\nimport androidx.compose.material3.Surface\n', 1)
           marker = '    val pendingConfirmation by viewModel.pendingConfirmation.collectAsStateWithLifecycle()\n'
@@ -59,19 +60,13 @@ jobs:
           if 'snackbarHost = { SnackbarHost(snackbarHostState) }' not in s:
               if old not in s: raise SystemExit('Item 7 Screen root Column not found')
               s = s.replace(old, new, 1)
-              anchor = '\n    // Tool picker bottom sheet'
-              idx = s.find(anchor)
-              if idx < 0: raise SystemExit('Item 7 Screen closing anchor not found')
-              prefix, suffix = s[:idx], s[idx:]
-              lines = prefix.rstrip().split('\n')
-              if lines[-1].strip() != '}': raise SystemExit('Item 7 Screen root close not found')
-              lines[-1] = '        }'
-              s = '\n'.join(lines) + '\n    }\n' + suffix
+              closing = '    }\n\n    // Tool picker bottom sheet'
+              if closing not in s: raise SystemExit('Item 7 Screen closing marker not found')
+              s = s.replace(closing, '        }\n    }\n\n    // Tool picker bottom sheet', 1)
           screen.write_text(s)
       - name: Re-read changed files
         run: |
-          grep -n "NeedsConfirmation\|dispatchConfirmed" core/src/main/java/com/gemofgemma/core/model/AiResponse.kt actions/src/main/java/com/gemofgemma/actions/ActionDispatcher.kt
-          grep -n "snackbarEvent\|SnackbarHostState\|SnackbarHost" ui/src/main/java/com/gemofgemma/ui/chat/ChatViewModel.kt ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt
+          grep -n "snackbarEvent\|SnackbarHostState\|SnackbarHost\|snackbarHost =" ui/src/main/java/com/gemofgemma/ui/chat/ChatViewModel.kt ui/src/main/java/com/gemofgemma/ui/chat/ChatScreen.kt
       - name: Compile affected modules
         run: ./gradlew --no-configuration-cache :core:compileDebugKotlin :actions:compileDebugKotlin :ui:compileDebugKotlin --stacktrace
       - name: Commit Item 7
