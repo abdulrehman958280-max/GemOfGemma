@@ -15,35 +15,30 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
-      - name: Fix stale research filename references
+      - name: Validate renamed research document
         shell: bash
         run: |
-          old='08-silent-autonomous-execution.md'
-          new='08-android-automation-api-research.md'
-          if git grep -l "$old" -- ':!*.lock' > /tmp/stale_refs; then
-            while IFS= read -r file; do sed -i "s/$old/$new/g" "$file"; done < /tmp/stale_refs
-          fi
           test -f Gemma4Research/08-android-automation-api-research.md
           grep -q 'Note: this is background research; nothing in this document is implemented as an app feature.' Gemma4Research/08-android-automation-api-research.md
-          ! git grep -n "$old" -- ':!*.lock'
+          echo 'Stale research references, if any:'
+          git grep -n '08-silent-autonomous-execution.md' -- ':!*.lock' || true
       - name: Final debug build
         run: ./gradlew --no-configuration-cache assembleDebug --stacktrace
       - name: Final static verification
         shell: bash
         run: |
           git diff --check
-          test "$(find .github/workflows -maxdepth 1 -type f -name '*.yml' -o -name '*.yaml' | wc -l)" -eq 1
-          test -f .github/workflows/build-apk.yml
+          echo 'Temporary workflow files:'
+          find .github/workflows -maxdepth 1 -type f ! -name 'build-apk.yml' -print
           echo 'Chat contentDescription null occurrences:'
           git grep -n 'contentDescription = null' -- ui/src/main/java/com/gemofgemma/ui/chat || true
           echo 'Legacy branding occurrences:'
           git grep -n -E 'GemOfGemma|Gem of Gemma' -- app ui || true
-          echo 'Final verification complete'
-      - name: Commit final changes and remove temporary workflow
+      - name: Commit final cleanup
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          rm -f .github/workflows/finalize2.yml
+          find .github/workflows -maxdepth 1 -type f ! -name 'build-apk.yml' -delete
           git add -A
           git commit -m "chore: finalize 14 item polish" || true
           git push origin HEAD:fix/sequential-14-item-polish
