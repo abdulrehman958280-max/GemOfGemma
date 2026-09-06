@@ -5,11 +5,11 @@ package com.gemofgemma.accessibility
 import android.graphics.Rect
 
 /**
- * Interface for the action layer to request accessibility-based UI automation.
- * Implemented by [GemOfGemmaAccessibilityService].
+ * Interface for the future UI-automation integration.
  *
- * Callers should check [isServiceEnabled] before attempting any operations.
- * Access the live instance via [GemOfGemmaAccessibilityService.instance].
+ * NOT YET WIRED — reserved for future UI-automation tool, not called by
+ * ActionDispatcher. Keep this contract isolated until a concrete action and
+ * SafetyValidator policy are added.
  */
 interface AccessibilityBridge {
     fun isServiceEnabled(): Boolean
