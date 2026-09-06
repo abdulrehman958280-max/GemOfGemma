@@ -1,4 +1,4 @@
-name: Item 10 verification
+name: Item 11 verification
 on:
   push:
     paths:
@@ -10,32 +10,58 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '17'
-      - uses: gradle/actions/setup-gradle@v4
-      - name: Apply Item 10
-        shell: python
+      - name: Apply Item 11
+        shell: bash
         run: |
+          set -euo pipefail
+          old='Gemma4Research/08-silent-autonomous-execution.md'
+          new='Gemma4Research/08-android-automation-api-research.md'
+          if [[ -f "$old" && ! -f "$new" ]]; then
+            git mv "$old" "$new"
+          elif [[ ! -f "$new" ]]; then
+            echo "Item 11: neither source nor destination research file exists" >&2
+            exit 1
+          fi
+          python3 - <<'PY'
           from pathlib import Path
-          p = Path('app/src/main/AndroidManifest.xml')
-          s = p.read_text()
-          old = 'android:allowBackup="true"'
-          if old in s:
-              s = s.replace(old, 'android:allowBackup="false"', 1)
-          elif 'android:allowBackup="false"' not in s:
-              raise SystemExit('Item 10: allowBackup attribute not found')
-          p.write_text(s)
-      - name: Re-read changed file
-        run: grep -n "allowBackup" app/src/main/AndroidManifest.xml
-      - name: Compile affected module
-        run: ./gradlew --no-configuration-cache :app:compileDebugKotlin --stacktrace
-      - name: Commit Item 10
+          old_name = '08-silent-autonomous-execution.md'
+          new_name = '08-android-automation-api-research.md'
+          note = 'Note: this is background research; nothing in this document is implemented as an app feature.'
+          research = Path('Gemma4Research') / new_name
+          text = research.read_text()
+          if note not in text:
+              lines = text.splitlines()
+              insert_at = 1 if lines and lines[0].startswith('# ') else 0
+              lines.insert(insert_at, '')
+              lines.insert(insert_at + 1, '> ' + note)
+              research.write_text('\n'.join(lines) + ('\n' if text.endswith('\n') else ''))
+          for path in Path('.').rglob('*'):
+              if not path.is_file() or '.git' in path.parts:
+                  continue
+              try:
+                  value = path.read_text()
+              except (UnicodeDecodeError, OSError):
+                  continue
+              updated = value.replace(old_name, new_name)
+              if updated != value:
+                  path.write_text(updated)
+          PY
+      - name: Re-read and validate Item 11
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f Gemma4Research/08-android-automation-api-research.md
+          grep -Fq 'Note: this is background research; nothing in this document is implemented as an app feature.' Gemma4Research/08-android-automation-api-research.md
+          if git grep -n '08-silent-autonomous-execution.md' -- . ':!Gemma4Research/08-android-automation-api-research.md'; then
+            echo 'Item 11: stale research filename reference remains' >&2
+            exit 1
+          fi
+          git status --short
+      - name: Commit Item 11
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app/src/main/AndroidManifest.xml
-          git commit -m "security: disable app backup for local chat data"
+          git add -A
+          git commit -m "docs: rename android automation research"
           git pull --rebase origin fix/sequential-14-item-polish
           git push origin HEAD:fix/sequential-14-item-polish
