@@ -1,5 +1,7 @@
 package com.gemofgemma.accessibility
 
+// NOT YET WIRED — reserved for future UI-automation tool, not called by ActionDispatcher.
+
 import android.graphics.Rect
 
 /**
