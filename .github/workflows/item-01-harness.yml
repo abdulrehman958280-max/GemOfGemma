@@ -21,9 +21,16 @@ jobs:
           from pathlib import Path
           vm = Path('ui/src/main/java/com/gemofgemma/ui/chat/ChatViewModel.kt')
           s = vm.read_text()
-          s = s.replace('import kotlinx.coroutines.flow.MutableStateFlow\n', 'import kotlinx.coroutines.flow.MutableSharedFlow\nimport kotlinx.coroutines.flow.MutableStateFlow\n', 1) if 'MutableSharedFlow' not in s else s
-          s = s.replace('import kotlinx.coroutines.flow.StateFlow\n', 'import kotlinx.coroutines.flow.SharedFlow\nimport kotlinx.coroutines.flow.StateFlow\n', 1) if 'SharedFlow' not in s else s
-          s = s.replace('import kotlinx.coroutines.flow.asStateFlow\n', 'import kotlinx.coroutines.flow.asSharedFlow\nimport kotlinx.coroutines.flow.asStateFlow\n', 1) if 'asSharedFlow' not in s else s
+          imports = [
+              ('import kotlinx.coroutines.flow.MutableSharedFlow\n', 'import kotlinx.coroutines.flow.MutableSharedFlow\n'),
+              ('import kotlinx.coroutines.flow.SharedFlow\n', 'import kotlinx.coroutines.flow.SharedFlow\n'),
+              ('import kotlinx.coroutines.flow.asSharedFlow\n', 'import kotlinx.coroutines.flow.asSharedFlow\n'),
+              ('import kotlinx.coroutines.flow.collect\n', 'import kotlinx.coroutines.flow.collect\n')
+          ]
+          if 'import kotlinx.coroutines.flow.MutableSharedFlow\n' not in s: s = s.replace('import kotlinx.coroutines.flow.MutableStateFlow\n', imports[0][1] + 'import kotlinx.coroutines.flow.MutableStateFlow\n', 1)
+          if 'import kotlinx.coroutines.flow.SharedFlow\n' not in s: s = s.replace('import kotlinx.coroutines.flow.StateFlow\n', imports[1][1] + 'import kotlinx.coroutines.flow.StateFlow\n', 1)
+          if 'import kotlinx.coroutines.flow.asSharedFlow\n' not in s: s = s.replace('import kotlinx.coroutines.flow.asStateFlow\n', imports[2][1] + 'import kotlinx.coroutines.flow.asStateFlow\n', 1)
+          if 'import kotlinx.coroutines.flow.collect\n' not in s: s = s.replace('import kotlinx.coroutines.flow.collect\n', 'import kotlinx.coroutines.flow.collect\n', 1) if 'import kotlinx.coroutines.flow.collect\n' in s else s.replace('import kotlinx.coroutines.flow.catch\n', 'import kotlinx.coroutines.flow.catch\nimport kotlinx.coroutines.flow.collect\n', 1)
           marker = '    val pendingConfirmation: StateFlow<ActionResult.NeedsConfirmation?> = _pendingConfirmation.asStateFlow()\n'
           if 'val snackbarEvent: SharedFlow<String>' not in s:
               if marker not in s: raise SystemExit('Item 7 VM state marker not found')
@@ -56,8 +63,10 @@ jobs:
               idx = s.find(anchor)
               if idx < 0: raise SystemExit('Item 7 Screen closing anchor not found')
               prefix, suffix = s[:idx], s[idx:]
-              closing = '\n'.join(prefix.rstrip().split('\n')[:-1]) + '\n        }\n    }\n' + suffix
-              s = closing
+              lines = prefix.rstrip().split('\n')
+              if lines[-1].strip() != '}': raise SystemExit('Item 7 Screen root close not found')
+              lines[-1] = '        }'
+              s = '\n'.join(lines) + '\n    }\n' + suffix
           screen.write_text(s)
       - name: Re-read changed files
         run: |
