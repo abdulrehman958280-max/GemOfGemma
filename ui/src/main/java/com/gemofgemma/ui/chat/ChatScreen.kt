@@ -252,7 +252,7 @@ fun ChatScreen(
                 Spacer(modifier = Modifier.weight(1f))
                 IconButton(
                     onClick = viewModel::toggleConversationHistory,
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
                         Icons.Default.Forum,
@@ -262,7 +262,7 @@ fun ChatScreen(
                 }
                 IconButton(
                     onClick = viewModel::newChat,
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
                         Icons.Default.Add,
@@ -272,7 +272,7 @@ fun ChatScreen(
                 }
                 IconButton(
                     onClick = onNavigateToSettings,
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
                         Icons.Filled.Settings,
@@ -1062,7 +1062,7 @@ private fun ChatInputBar(
                 IconButton(
                     onClick = onAttachmentClick,
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(48.dp)
                         .clip(CircleShape),
                     colors = IconButtonDefaults.iconButtonColors(
                         containerColor = if (hasAttachment)
@@ -1108,7 +1108,7 @@ private fun ChatInputBar(
                                 2 -> {
                                     IconButton(
                                         onClick = onStop,
-                                        modifier = Modifier.size(36.dp),
+                                        modifier = Modifier.size(48.dp),
                                         colors = IconButtonDefaults.iconButtonColors(
                                             containerColor = MaterialTheme.colorScheme.errorContainer
                                         )
@@ -1125,7 +1125,7 @@ private fun ChatInputBar(
                                     IconButton(
                                         onClick = onSend,
                                         enabled = canSend,
-                                        modifier = Modifier.size(36.dp)
+                                        modifier = Modifier.size(48.dp)
                                     ) {
                                         Icon(
                                             imageVector = Icons.AutoMirrored.Filled.Send,
@@ -1141,7 +1141,7 @@ private fun ChatInputBar(
                                 else -> {
                                     IconButton(
                                         onClick = onMicToggle,
-                                        modifier = Modifier.size(36.dp)
+                                        modifier = Modifier.size(48.dp)
                                     ) {
                                         Icon(
                                             imageVector = if (isRecording) Icons.Default.MicOff else Icons.Default.Mic,
@@ -1486,7 +1486,7 @@ private fun ConversationHistorySheet(
                                 if (!isCurrent) {
                                     IconButton(
                                         onClick = { pendingDelete = conv },
-                                        modifier = Modifier.size(32.dp)
+                                        modifier = Modifier.size(48.dp)
                                     ) {
                                         Icon(
                                             Icons.Default.Close,
