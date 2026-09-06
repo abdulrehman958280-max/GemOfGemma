@@ -77,6 +77,9 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -134,6 +137,7 @@ fun ChatScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val pendingConfirmation by viewModel.pendingConfirmation.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val haptics = LocalHapticFeedback.current
@@ -201,6 +205,12 @@ fun ChatScreen(
         }
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.snackbarEvent.collect { message ->
+            snackbarHostState.showSnackbar(message)
+        }
+    }
+
     LaunchedEffect(uiState.isLoading) {
         if (uiState.isLoading) {
             keyboardController?.hide()
@@ -221,12 +231,16 @@ fun ChatScreen(
         )
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .imePadding()
-    ) {
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(innerPadding)
+                .imePadding()
+        ) {
         // ── Minimal header ───────────────────────────────────
         Surface(
             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
@@ -572,6 +586,7 @@ fun ChatScreen(
                     )
                 }
             }
+        }
         }
     }
 

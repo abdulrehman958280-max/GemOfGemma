@@ -19,8 +19,11 @@ import com.gemofgemma.voice.VoiceState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
@@ -46,6 +49,9 @@ class ChatViewModel @Inject constructor(
 
     private val _pendingConfirmation = MutableStateFlow<ActionResult.NeedsConfirmation?>(null)
     val pendingConfirmation: StateFlow<ActionResult.NeedsConfirmation?> = _pendingConfirmation.asStateFlow()
+
+    private val _snackbarEvent = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val snackbarEvent: SharedFlow<String> = _snackbarEvent.asSharedFlow()
 
     private var currentConversationId: String = UUID.randomUUID().toString()
     private var voiceJob: Job? = null
@@ -417,9 +423,14 @@ class ChatViewModel @Inject constructor(
             is AiResponse.ActionResponse -> {
                 val resultText = when (val result = response.actionResult) {
                     is com.gemofgemma.core.model.ActionResult.Success -> result.message
-                    is com.gemofgemma.core.model.ActionResult.Error -> "Action failed: ${result.message}"
-                    is com.gemofgemma.core.model.ActionResult.PermissionRequired ->
-                        "Permissions needed: ${result.permissions.joinToString()}"
+                    is com.gemofgemma.core.model.ActionResult.Error -> {
+                        _snackbarEvent.tryEmit("Action failed: ${result.message}")
+                        ""
+                    }
+                    is com.gemofgemma.core.model.ActionResult.PermissionRequired -> {
+                        _snackbarEvent.tryEmit("Permissions needed: ${result.permissions.joinToString()}")
+                        ""
+                    }
                     is com.gemofgemma.core.model.ActionResult.NeedsConfirmation -> {
                         _pendingConfirmation.value = result
                         "Confirm action: ${result.actionDescription}"
