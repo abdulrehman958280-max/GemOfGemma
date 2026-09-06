@@ -10,11 +10,14 @@ import android.view.accessibility.AccessibilityNodeInfo
 
 /**
  * AccessibilityService implementation for OmniCode.
- * Enables UI automation — reading screen content, tapping elements,
- * typing text, and performing global actions (home, back, recents).
  *
+ * NOT YET WIRED — reserved for future UI-automation tool, not called by
+ * ActionDispatcher. It is intentionally kept isolated until an explicit
+ * user-facing automation action and SafetyValidator policy are implemented.
+ *
+ * Enables UI automation — reading screen content, tapping elements, typing
+ * text, and performing global actions (home, back, recents).
  * Must be enabled manually by the user in Settings > Accessibility.
- * Access the running instance via [instance] companion property.
  */
 class OmniCodeAccessibilityService : AccessibilityService(), AccessibilityBridge {
 
