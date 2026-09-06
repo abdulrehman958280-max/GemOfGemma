@@ -2,6 +2,7 @@ package com.gemofgemma.ui.theme
 
 import android.app.Activity
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -36,6 +37,32 @@ private val OmniCodeColorScheme = lightColorScheme(
     onError = GemOnErrorLight
 )
 
+private val OmniCodeDarkColorScheme = darkColorScheme(
+    primary = GemPrimaryDark,
+    onPrimary = GemOnPrimaryDark,
+    primaryContainer = GemPrimaryContainerDark,
+    onPrimaryContainer = GemOnPrimaryContainerDark,
+    secondary = GemSecondaryDark,
+    onSecondary = GemOnSecondaryDark,
+    secondaryContainer = GemSecondaryContainerDark,
+    onSecondaryContainer = GemOnSecondaryContainerDark,
+    tertiary = GemTertiaryDark,
+    onTertiary = GemOnTertiaryDark,
+    tertiaryContainer = GemTertiaryContainerDark,
+    onTertiaryContainer = GemOnTertiaryContainerDark,
+    background = GemBackgroundDark,
+    onBackground = GemOnBackgroundDark,
+    surface = GemSurfaceDark,
+    onSurface = GemOnSurfaceDark,
+    surfaceVariant = GemSurfaceVariantDark,
+    onSurfaceVariant = GemOnSurfaceVariantDark,
+    outline = GemOutlineDark,
+    surfaceContainer = GemSurfaceContainerDark,
+    surfaceContainerHigh = GemSurfaceContainerHighDark,
+    error = GemErrorDark,
+    onError = GemOnErrorDark
+)
+
 @Composable
 fun OmniCodeTheme(
     darkTheme: Boolean = false,
@@ -48,14 +75,14 @@ fun OmniCodeTheme(
             window.statusBarColor = Color.Transparent.toArgb()
             window.navigationBarColor = Color.Transparent.toArgb()
             WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = true
-                isAppearanceLightNavigationBars = true
+                isAppearanceLightStatusBars = !darkTheme
+                isAppearanceLightNavigationBars = !darkTheme
             }
         }
     }
 
     MaterialTheme(
-        colorScheme = OmniCodeColorScheme,
+        colorScheme = if (darkTheme) OmniCodeDarkColorScheme else OmniCodeColorScheme,
         typography = GemTypography,
         shapes = GemShapes,
         content = content

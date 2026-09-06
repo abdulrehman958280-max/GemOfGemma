@@ -57,3 +57,33 @@ val ModeDetectAccent = DetectionBlue
 val ModeCaptionAccent = DetectionGreen
 val ModeOcrAccent = DetectionPurple
 val ModeVqaAccent = DetectionOrange
+
+
+// Dark theme keeps the cream/gold brand while using dark neutral surfaces.
+val GemPrimaryDark = Color(0xFFEBC56A)
+val GemOnPrimaryDark = Color(0xFF3F2E00)
+val GemPrimaryContainerDark = Color(0xFF5B4300)
+val GemOnPrimaryContainerDark = Color(0xFFFFE0A3)
+
+val GemSecondaryDark = Color(0xFFD0C7B7)
+val GemOnSecondaryDark = Color(0xFF353129)
+val GemSecondaryContainerDark = Color(0xFF4B463D)
+val GemOnSecondaryContainerDark = Color(0xFFECE3D4)
+
+val GemTertiaryDark = Color(0xFFAED3C8)
+val GemOnTertiaryDark = Color(0xFF173731)
+val GemTertiaryContainerDark = Color(0xFF2F514A)
+val GemOnTertiaryContainerDark = Color(0xFFC9E7DE)
+
+val GemBackgroundDark = Color(0xFF171512)
+val GemOnBackgroundDark = Color(0xFFEAE1D5)
+val GemSurfaceDark = Color(0xFF1E1B17)
+val GemOnSurfaceDark = Color(0xFFEAE1D5)
+val GemSurfaceVariantDark = Color(0xFF4A453D)
+val GemOnSurfaceVariantDark = Color(0xFFCBC2B6)
+val GemOutlineDark = Color(0xFF938D83)
+val GemSurfaceContainerDark = Color(0xFF25221D)
+val GemSurfaceContainerHighDark = Color(0xFF2D2923)
+
+val GemErrorDark = Color(0xFFFFB4AB)
+val GemOnErrorDark = Color(0xFF690005)
